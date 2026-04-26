@@ -17,7 +17,8 @@ const io = new Server(server, {
 });
 
 // Quité el "appName" y dejé lo básico que siempre funciona
-const uri = mongodb+srv://Solounpunto:Mega2026@solounpunto.zrk1a0j.mongodb.net/?appName=Solounpunto
+const uri = mongodb+srv://Solounpunto:Mega2026@solounpunto.zrk1a0j.mongodb.net/?
+appName=Solounpunto
 
 mongoose.connect(uri)
     .then(() => console.log("✅ ¡CONEXIÓN EXITOSA A MONGODB!"))
