@@ -16,15 +16,12 @@ const io = new Server(server, {
     }
 });
 
-// 2. CONEXIÓN A MONGO ATLAS
-const uri = "mongodb+srv://Solounpunto:Mega2728@solounpunto.zrkla0j.mongodb.net/SoloUnPuntoDB?retryWrites=true&w=majority&appName=Solounpunto";
+// Quité el "appName" y dejé lo básico que siempre funciona
+const uri = mongodb+srv://Solounpunto:Mega2026@solounpunto.zrk1a0j.mongodb.net/?appName=Solounpunto
 
-mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 5000, // Máximo 5 segundos para conectar
-    connectTimeoutMS: 10000,
-})
-.then(() => console.log("✅ ¡CONECTADO A MONGODB ATLAS!"))
-.catch(err => console.error("❌ ERROR CRÍTICO DE MONGO:", err.message));
+mongoose.connect(uri)
+    .then(() => console.log("✅ ¡CONEXIÓN EXITOSA A MONGODB!"))
+    .catch(err => console.error("❌ ERROR DE MONGO:", err.message));
 
 // 3. MODELO DE USUARIO
 const User = mongoose.model('User', new mongoose.Schema({
