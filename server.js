@@ -16,8 +16,8 @@ const io = new Server(server, {
     }
 });
 
-// Quité el "appName" y dejé lo básico que siempre funciona
-const uri = "mongodb://Solounpunto:Mega2026@solounpunto-shard-00-00.zrkla.mongodb.net:27017,solounpunto-shard-00-01.zrkla.mongodb.net:27017,solounpunto-shard-00-02.zrkla.mongodb.net:27017/SoloUnPuntoDB?ssl=true&replicaSet=atlas-zrkla-shard-0&authSource=admin&retryWrites=true&w=majority";
+// Ahora el código es limpio y GitHub no se asustará
+const uri = process.env.MONGO_URI;
 
 mongoose.connect(uri)
     .then(() => console.log("✅ ¡CONEXIÓN EXITOSA A MONGODB!"))
