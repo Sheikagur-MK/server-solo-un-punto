@@ -105,3 +105,53 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => { console.log(`🚀 Servidor activo en puerto ${PORT}`); });
+const io = new Server(server, { /* ... tus cors ... */ });
+
+let players = {};
+let items = [];
+let zona = { x: 2500, y: 2500, radio: 2500 };
+let partidaIniciada = false;
+
+// Configuración de la Zona
+const cerrarZona = () => {
+    if (!partidaIniciada) return;
+    // Cierra hacia un punto aleatorio dentro del radio actual
+    const angulo = Math.random() * Math.PI * 2;
+    const distancia = Math.random() * (zona.radio * 0.5);
+    zona.x += Math.cos(angulo) * distancia;
+    zona.y += Math.sin(angulo) * distancia;
+    zona.radio *= 0.7; // Reduce el tamaño un 30%
+    io.emit('actualizar_zona', zona);
+};
+
+io.on('connection', (socket) => {
+    // ... Login y Registro se mantienen igual ...
+
+    socket.on('solicitar_inicio_partida', () => {
+        if (socket.id === hostId) {
+            partidaIniciada = true;
+            // Generar ítems al azar una sola vez para todos
+            items = [];
+            for(let i=0; i<50; i++) items.push({ id: i, x: Math.random()*5000, y: Math.random()*5000, type: Math.random() > 0.5 ? 'arma' : 'dash' });
+            
+            io.emit('iniciar_partida', { items, zona });
+            setInterval(cerrarZona, 180000); // Cada 3 minutos
+        }
+    });
+
+    socket.on('move', (data) => {
+        if (players[socket.id]) {
+            players[socket.id] = { ...players[socket.id], ...data };
+            socket.broadcast.emit('playerMoved', { id: socket.id, ...players[socket.id] });
+        }
+    });
+
+    // Lógica de combate: un jugador reporta que tocó a otro con rectángulo
+    socket.on('ataque_exitoso', (targetId) => {
+        if (players[targetId]) {
+            io.to(targetId).emit('has_muerto');
+            delete players[targetId];
+            io.emit('jugador_eliminado', targetId);
+        }
+    });
+});
