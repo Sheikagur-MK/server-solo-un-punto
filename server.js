@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 // Ahora el código es limpio y GitHub no se asustará
-const uri = process.env.MONGO_URI;
+const uri = process.env.MONGODB_URI;
 
 mongoose.connect(uri)
     .then(() => console.log("✅ ¡CONEXIÓN EXITOSA A MONGODB!"))
