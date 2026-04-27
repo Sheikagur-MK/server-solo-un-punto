@@ -17,11 +17,20 @@ const io = new Server(server, {
 });
 
 // Ahora el código es limpio y GitHub no se asustará
-const uri = process.env.MONGODB_URI;
+const { MongoClient } = require('mongodb');
 
-mongoose.connect(uri)
-    .then(() => console.log("✅ ¡CONEXIÓN EXITOSA A MONGODB!"))
-    .catch(err => console.error("❌ ERROR DE MONGO:", err.message));
+const uri = process.env.MONGODB_URI; // Render inyectará esto automáticamente
+const client = new MongoClient(uri);
+
+async function connect() {
+  try {
+    await client.connect();
+    console.log("Conectado exitosamente a MongoDB en Render");
+  } catch (e) {
+    console.error(e);
+  }
+}
+connect();
 
 // 3. MODELO DE USUARIO
 const User = mongoose.model('User', new mongoose.Schema({
