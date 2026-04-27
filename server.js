@@ -10,8 +10,10 @@ const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"], credentials: true }
 });
 
-// MONGO (INTACTO)
-mongoose.connect(process.env.MONGODB_URI).catch(err => console.error(err));
+// --- TU CONEXIÓN MONGO (INTACTA) ---
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("🔥 Base de datos conectada con éxito"))
+  .catch(err => console.error("❌ Error al conectar MongoDB:", err));
 
 const User = mongoose.model('User', new mongoose.Schema({
     username: { type: String, required: true, unique: true },
@@ -103,7 +105,7 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(process.env.PORT || 10000);
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => console.log(`🚀 Servidor corriendo en puerto ${PORT}`));
 
 
