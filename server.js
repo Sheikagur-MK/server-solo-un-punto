@@ -30,13 +30,7 @@ let hostId = null;
 let partidaIniciada = false;
 let items = [];
 let zona = { x: 2500, y: 2500, radio: 2500 };
-let faseActual = 0;
-
-// MUROS: Agregados sin afectar la conexión
-const walls = [
-    {x: 1000, y: 1000, w: 400, h: 40}, {x: 3000, y: 2000, w: 40, h: 500},
-    {x: 1500, y: 3500, w: 600, h: 40}, {x: 4000, y: 1000, w: 40, h: 600}
-];
+const WORLD_SIZE = 5000;
 
 function generarItems() {
     let nuevosItems = [];
@@ -51,14 +45,16 @@ function generarItems() {
     return nuevosItems;
 }
 
-// Lógica de Fases cada 2 minutos
-function cerrarZona() {
-    if (!partidaIniciada || faseActual >= 4) return;
-    faseActual++;
-    zona.radio *= 0.6; // Reduce el tamaño
-    zona.x += (Math.random() - 0.5) * 400; // Desplaza el centro un poco
-    zona.y += (Math.random() - 0.5) * 400;
-    io.emit('actualizar_zona', { zona, fase: faseActual });
+function actualizarZona() {
+    if (!partidaIniciada) return;
+    const angulo = Math.random() * Math.PI * 2;
+    const mov = zona.radio * 0.15;
+    zona.x += Math.cos(angulo) * mov;
+    zona.y += Math.sin(angulo) * mov;
+    zona.radio *= 0.85; 
+    zona.x = Math.max(zona.radio, Math.min(WORLD_SIZE - zona.radio, zona.x));
+    zona.y = Math.max(zona.radio, Math.min(WORLD_SIZE - zona.radio, zona.y));
+    io.emit('actualizar_zona', zona);
 }
 
 io.on('connection', (socket) => {
@@ -69,7 +65,7 @@ io.on('connection', (socket) => {
             const nuevoUsuario = new User({ ...datos, password: hashedPassword });
             await nuevoUsuario.save();
             socket.emit('registro_resultado', { exito: true });
-        } catch (e) { socket.emit('registro_resultado', { exito: false }); }
+        } catch (e) { socket.emit('registro_resultado', { exito: false, mensaje: "Error al registrar" }); }
     });
 
     socket.on('login_usuario', async (datos) => {
@@ -89,10 +85,9 @@ io.on('connection', (socket) => {
     socket.on('solicitar_inicio_partida', () => {
         if (socket.id === hostId) {
             partidaIniciada = true;
-            faseActual = 0;
             items = generarItems();
-            io.emit('iniciar_partida', { items, zona, walls });
-            setInterval(cerrarZona, 120000); // 2 Minutos
+            io.emit('iniciar_partida', { items, zona });
+            setInterval(actualizarZona, 180000); 
         }
     });
 
@@ -101,16 +96,13 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('playerMoved', { id: socket.id, ...data });
     });
 
-    socket.on('eliminar_jugador', (targetId) => {
-        // Calcular posición: cuántos jugadores quedan vivos en este momento
-        const ranking = Object.keys(players).length;
-        io.to(targetId).emit('has_muerto', ranking);
-        delete players[targetId];
-    });
-
     socket.on('item_recogido', (itemId) => {
         items = items.filter(it => it.id !== itemId);
         io.emit('item_eliminado', itemId);
+    });
+
+    socket.on('eliminar_jugador', (targetId) => {
+        io.to(targetId).emit('has_muerto');
     });
 
     socket.on('disconnect', () => {
@@ -123,4 +115,5 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`🚀 Servidor listo`));
+server.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));
+
