@@ -30,6 +30,54 @@ let items = [];
 let totalAlEmpezar = 0; // Para calcular el ranking correctamente
 const WORLD_SIZE = 5000;
 
+// --- ACTUALIZACIÓN DEL ESQUEMA DE USUARIO ---
+const User = mongoose.model('User', new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    victorias: { type: Number, default: 0 },
+    monedas: { type: Number, default: 0 } // "Vértice Coins"
+}));
+
+// --- DENTRO DE io.on('connection') ---
+
+socket.on('eliminar_jugador', async (targetId) => {
+    if (players[targetId] && partidaIniciada) {
+        const rankingActual = Object.keys(players).length;
+        
+        // Recompensa por eliminación al atacante
+        if (User.exists({ _id: socket.userId })) {
+            await User.findByIdAndUpdate(socket.userId, { $inc: { monedas: 10 } });
+        }
+
+        io.to(targetId).emit('has_muerto', rankingActual);
+        
+        // Efecto de explosión para todos
+        io.emit('efecto_explosion', { x: players[targetId].x, y: players[targetId].y });
+
+        delete players[targetId];
+        io.emit('playerDisconnected', targetId);
+
+        const sobrevivientes = Object.keys(players);
+        if (sobrevivientes.length === 1) {
+            const ganadorId = sobrevivientes[0];
+            // Guardar victoria en DB
+            const userGanador = await User.findByIdAndUpdate(ganadorId, { 
+                $inc: { victorias: 1, monedas: 100 } 
+            }, { new: true });
+
+            io.to(ganadorId).emit('eres_ganador', { 
+                victorias: userGanador.victorias, 
+                monedas: userGanador.monedas 
+            });
+            
+            partidaIniciada = false;
+            jugadoresEnEspera = [];
+            hostId = null;
+        }
+    }
+});
+
 // Variables de la Zona y Fases
 let zona = { x: 2500, y: 2500, radio: 2500 };
 let radioObjetivo = 2500;
