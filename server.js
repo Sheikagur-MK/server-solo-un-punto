@@ -123,21 +123,26 @@ io.on('connection', (socket) => {
             items = generarItems();
             
             players = {};
-            jugadoresEnEspera.forEach(id => {
-                players[id] = { x: 2500, y: 2500, hasWeapon: false };
-            });
+            // Localiza esto en tu server.js (Línea 102 aprox.)
+jugadoresEnEspera.forEach(id => {
+    // Agregamos 'type' para que el servidor sepa qué forma tiene el jugador al iniciar
+    players[id] = { x: 2500, y: 2500, hasWeapon: false, type: 'circulo' }; 
+});
             totalAlEmpezar = jugadoresEnEspera.length;
 
             io.emit('iniciar_partida', { items, zona, walls });
         }
     });
 
-    socket.on('move', (data) => {
-        if (players[socket.id]) {
-            players[socket.id] = data;
-            socket.broadcast.emit('playerMoved', { id: socket.id, ...data });
-        }
-    });
+   // Localiza socket.on('move', ...) (Línea 110 aprox.)
+socket.on('move', (data) => {
+    if (players[socket.id]) {
+        // Al igualar players[socket.id] a 'data', el servidor guarda automáticamente 
+        // el 'type' (triángulo, círculo o cuadrado) que envía el HTML.
+        players[socket.id] = data; 
+        socket.broadcast.emit('playerMoved', { id: socket.id, ...data });
+    }
+});
 
     socket.on('item_recogido', (id) => {
         items = items.filter(it => it.id !== id);
