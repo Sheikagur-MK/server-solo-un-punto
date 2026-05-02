@@ -98,20 +98,26 @@ io.on('connection', (socket) => {
     });
 
     socket.on('login_usuario', async (datos) => {
-        try {
-            const usuario = await User.findOne({ email: datos.email });
-            if (usuario && await bcrypt.compare(datos.password, usuario.password)) {
-                socket.dbId = usuario._id; 
-                
-                if (!jugadoresEnEspera.includes(socket.id)) {
-                    jugadoresEnEspera.push(socket.id);
-                    if (!hostId) hostId = socket.id;
-                }
-                socket.emit('login_resultado', { exito: true });
-                io.emit('actualizar_sala', { total: jugadoresEnEspera.length, hostId: hostId });
+    try {
+        const usuario = await User.findOne({ email: datos.email });
+        if (usuario && await bcrypt.compare(datos.password, usuario.password)) {
+            socket.dbId = usuario._id; 
+            
+            if (!jugadoresEnEspera.includes(socket.id)) {
+                jugadoresEnEspera.push(socket.id);
+                if (!hostId) hostId = socket.id;
             }
-        } catch (e) { socket.emit('login_resultado', { exito: false }); }
-    });
+            // ENVIAMOS LAS ESTADÍSTICAS REALES AQUÍ
+            socket.emit('login_resultado', { 
+                exito: true, 
+                monedas: usuario.monedas, 
+                victorias: usuario.victorias,
+                username: usuario.username 
+            });
+            io.emit('actualizar_sala', { total: jugadoresEnEspera.length, hostId: hostId });
+        }
+    } catch (e) { socket.emit('login_resultado', { exito: false }); }
+   });
 
     socket.on('solicitar_inicio_partida', () => {
         if (socket.id === hostId) {
