@@ -101,7 +101,6 @@ io.on('connection', (socket) => {
         try {
             const usuario = await User.findOne({ email: datos.email });
             if (usuario && await bcrypt.compare(datos.password, usuario.password)) {
-                // Guardamos el ID de la DB en el socket para transacciones
                 socket.dbId = usuario._id; 
                 
                 if (!jugadoresEnEspera.includes(socket.id)) {
@@ -149,19 +148,16 @@ io.on('connection', (socket) => {
         if (players[targetId] && partidaIniciada) {
             const rankingActual = Object.keys(players).length;
             
-            // 1. Recompensa por kill (10 monedas)
             if (socket.dbId && targetId !== socket.id) {
                 await User.findByIdAndUpdate(socket.dbId, { $inc: { monedas: 10 } });
             }
 
-            // 2. Avisar muerte y efecto visual
             io.to(targetId).emit('has_muerto', rankingActual);
             io.emit('efecto_explosion', { x: players[targetId].x, y: players[targetId].y });
             
             delete players[targetId];
             io.emit('playerDisconnected', targetId);
 
-            // 3. Verificar Ganador
             const sobrevivientes = Object.keys(players);
             if (sobrevivientes.length === 1) {
                 const ganadorSocketId = sobrevivientes[0];
@@ -199,6 +195,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));
-```[cite: 3]
 
 
