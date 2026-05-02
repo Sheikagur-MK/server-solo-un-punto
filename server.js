@@ -15,12 +15,14 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("🔥 Base de datos conectada con éxito"))
   .catch(err => console.error("❌ Error al conectar MongoDB:", err));
 
+// --- SUSTITUYE LAS LÍNEAS 20-24 POR ESTO ---
 const User = mongoose.model('User', new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }
+    password: { type: String, required: true },
+    victorias: { type: Number, default: 0 }, // Nueva estadística 2026
+    monedas: { type: Number, default: 0 }    // Economía del juego
 }));
-
 // --- VARIABLES DE ESTADO ---
 let players = {};
 let jugadoresEnEspera = [];
@@ -29,15 +31,6 @@ let partidaIniciada = false;
 let items = [];
 let totalAlEmpezar = 0; // Para calcular el ranking correctamente
 const WORLD_SIZE = 5000;
-
-// --- ACTUALIZACIÓN DEL ESQUEMA DE USUARIO ---
-const User = mongoose.model('User', new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    victorias: { type: Number, default: 0 },
-    monedas: { type: Number, default: 0 } // "Vértice Coins"
-}));
 
 // --- DENTRO DE io.on('connection') ---
 
