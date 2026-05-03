@@ -6,13 +6,16 @@ const bcrypt = require('bcryptjs');
 const app = express();
 const server = http.createServer(app);
 
+// Definición del puerto para evitar el ReferenceError[cite: 7]
+const PORT = process.env.PORT || 10000;
+
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"], credentials: true }
 });
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("🔥 DB Conectada"))
-  .catch(err => console.error("❌ Error DB:", err));
+  .then(() => console.log("🔥 System Online: DB Connected"))
+  .catch(err => console.error("❌ System Failure: DB Error", err));
 
 const User = mongoose.model('User', new mongoose.Schema({
     username: { type: String, required: true, unique: true },
@@ -27,54 +30,41 @@ let jugadoresEnEspera = [];
 let hostId = null;
 let partidaIniciada = false;
 let items = [];
-const WORLD_SIZE = 5000;
 
 let zona = { x: 2500, y: 2500, radio: 2500 };
 let radioObjetivo = 2500;
 let faseActual = 1;
-let tiempoParaSiguienteFase = 120;
 
-// Muros reestructurados para un mapa más táctico[cite: 7]
+// Mapa Táctico 2026[cite: 7]
 const walls = [
-    {x: 500, y: 500, w: 1000, h: 40}, {x: 500, y: 500, w: 40, h: 1000},
-    {x: 3500, y: 500, w: 1000, h: 40}, {x: 4460, y: 500, w: 40, h: 1000},
-    {x: 500, y: 3500, w: 1000, h: 40}, {x: 500, y: 3500, w: 40, h: 1000},
-    {x: 3500, y: 3500, w: 1000, h: 40}, {x: 4460, y: 3500, w: 40, h: 1000},
-    {x: 2200, y: 2200, w: 600, h: 600} // El "Core" central
+    {x: 800, y: 800, w: 100, h: 800}, {x: 800, y: 800, w: 800, h: 100},
+    {x: 3400, y: 800, w: 800, h: 100}, {x: 4100, y: 800, w: 100, h: 800},
+    {x: 800, y: 3400, w: 800, h: 100}, {x: 800, y: 3400, w: 100, h: 800},
+    {x: 3400, y: 3400, w: 800, h: 100}, {x: 4100, y: 3400, w: 100, h: 800},
+    {x: 2300, y: 2300, w: 400, h: 400} // Centro
 ];
 
 function generarItems() {
     let nuevosItems = [];
-    const tipos = ['speed', 'weapon', 'shield'];
-    for(let i=0; i<80; i++){
+    for(let i=0; i<100; i++){
         nuevosItems.push({
             id: i,
-            x: Math.random() * 4400 + 300,
-            y: Math.random() * 4400 + 300,
-            type: tipos[Math.floor(Math.random() * tipos.length)]
+            x: Math.random() * 4000 + 500,
+            y: Math.random() * 4000 + 500,
+            type: Math.random() > 0.7 ? 'weapon' : 'speed'
         });
     }
     return nuevosItems;
 }
 
-// Lógica de Zona[cite: 7]
 setInterval(() => {
     if (partidaIniciada) {
-        if (zona.radio > radioObjetivo) zona.radio -= 0.8;
-        io.emit('actualizar_zona', { zona, fase: faseActual, tiempo: tiempoParaSiguienteFase });
+        if (zona.radio > radioObjetivo) zona.radio -= 1.2; // Cierre más rápido
+        io.emit('actualizar_zona', { zona, fase: faseActual });
     }
 }, 100);
 
 io.on('connection', (socket) => {
-    socket.on('registrar_usuario', async (datos) => {
-        try {
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(datos.password, salt);
-            await new User({ ...datos, password: hashedPassword }).save();
-            socket.emit('registro_resultado', { exito: true });
-        } catch (e) { socket.emit('registro_resultado', { exito: false }); }
-    });
-
     socket.on('login_usuario', async (datos) => {
         try {
             const usuario = await User.findOne({ email: datos.email });
@@ -95,12 +85,12 @@ io.on('connection', (socket) => {
     socket.on('solicitar_inicio_partida', () => {
         if (socket.id === hostId) {
             partidaIniciada = true;
-            faseActual = 1;
             zona.radio = 2500;
+            radioObjetivo = 500; // La zona se cierra hacia el centro
             items = generarItems();
             players = {};
             jugadoresEnEspera.forEach(id => {
-                players[id] = { x: 2500 + (Math.random()*200-100), y: 2500 + (Math.random()*200-100), vivo: true, type: 'neon' };
+                players[id] = { x: 2500, y: 2500, vivo: true };
             });
             io.emit('iniciar_partida', { items, zona, walls });
         }
@@ -113,14 +103,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('eliminar_jugador', (targetId) => {
-        if(players[targetId]) {
-            io.emit('efecto_explosion', { x: players[targetId].x, y: players[targetId].y });
-            delete players[targetId];
-            io.emit('playerDisconnected', targetId);
-        }
-    });
-
     socket.on('disconnect', () => {
         delete players[socket.id];
         jugadoresEnEspera = jugadoresEnEspera.filter(id => id !== socket.id);
@@ -129,7 +111,5 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(process.env.PORT || 10000);
-server.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));
-
+server.listen(PORT, () => console.log(`🚀 Servidor activo en puerto ${PORT}`));[cite: 7]
 
