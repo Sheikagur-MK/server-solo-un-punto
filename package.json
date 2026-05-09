@@ -1,16 +1,13 @@
 {
-  "name": "servidor-solo-un-punto",
+  "name": "global-neon-arena",
   "version": "1.0.0",
-  "description": "Servidor para juego de 100 personas",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "express": "^4.22.1",
-    "mongoose": "^9.5.0",
-    "socket.io": "^4.8.3"
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "mongoose": "^7.5.0"
   }
 }
-
