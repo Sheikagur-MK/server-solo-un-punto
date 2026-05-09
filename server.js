@@ -4,54 +4,52 @@ const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const path = require('path'); // Añadido para rutas de archivos
+
 const app = express();
 const server = http.createServer(app);
-
-const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"], credentials: true }
-});
-
+const io = new Server(server, { cors: { origin: "*" } });
 
 // --- CONEXIÓN MONGO (Respetada) ---
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("🔥 Base de datos conectada con éxito"))
   .catch(err => console.error("❌ Error al conectar MongoDB:", err));
-const playerSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
     username: String,
-    wins: { type: Number, default: 0 }
+    credits: { type: Number, default: 1000 },
+    skins: [String],
+    level: { type: Number, default: 1 }
 });
-const PlayerModel = mongoose.model('Player', playerSchema);
-
-let players = {};
+const User = mongoose.model('User', userSchema);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+let rooms = {}; // Gestión de Salas Privadas
+
 io.on('connection', (socket) => {
-    console.log('Jugador conectado:', socket.id);
-    
-    // Crear nuevo jugador
-    players[socket.id] = {
-        x: Math.random() * 700,
-        y: Math.random() * 400,
-        color: `hsl(${Math.random() * 360}, 70%, 50%)`,
-        id: socket.id
-    };
+    console.log('ID Conectado:', socket.id);
 
-    // Enviar estado actual a todos
-    io.emit('updatePlayers', players);
+    // Unirse a una sala específica
+    socket.on('joinRoom', (roomName) => {
+        socket.join(roomName);
+        if (!rooms[roomName]) rooms[roomName] = [];
+        rooms[roomName].push(socket.id);
+        console.log(`Jugador en sala: ${roomName}`);
+        io.to(roomName).emit('roomUpdate', rooms[roomName]);
+    });
 
-    // Recibir movimiento
-    socket.on('move', (data) => {
-        if (players[socket.id]) {
-            players[socket.id].x = data.x;
-            players[socket.id].y = data.y;
-            socket.broadcast.emit('updatePlayers', players);
-        }
+    // Lógica del Mercado (Compra)
+    socket.on('buyItem', async (data) => {
+        // Aquí conectarías con la lógica de MongoDB para restar créditos
+        console.log(`Compra recibida: ${data.item} por ${data.user}`);
+        socket.emit('purchaseSuccess', { item: data.item });
     });
 
     socket.on('disconnect', () => {
-        delete players[socket.id];
-        io.emit('updatePlayers', players);
+        for (let room in rooms) {
+            rooms[room] = rooms[room].filter(id => id !== socket.id);
+            io.to(room).emit('roomUpdate', rooms[room]);
+        }
+        console.log('Desconectado:', socket.id);
     });
 
 const PORT = process.env.PORT || 10000;
