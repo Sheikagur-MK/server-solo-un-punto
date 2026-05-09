@@ -1,164 +1,70 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HG Studios | Vision AI V7.6</title>
-    <script async src="https://cdnjs.cloudflare.com/ajax/libs/opencv.js/4.5.4/opencv.js" type="text/javascript"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <title>Global Neon Arena</title>
     <style>
-        :root { --neon: #39ff14; --blue: #00d2ff; --bg: #0a0a0c; --glass: rgba(15, 15, 20, 0.9); }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: white; overflow: hidden; }
-        
-        #loading-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: #000; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .spinner { width: 60px; height: 60px; border: 4px solid #1a1a1a; border-top: 4px solid var(--neon); border-radius: 50%; animation: spin 1s linear infinite; }
-        
-        #ui-layer { position: absolute; top: 10px; left: 10px; z-index: 100; display: flex; flex-direction: column; gap: 10px; }
-        .ai-card { background: var(--glass); padding: 15px; border-radius: 12px; border: 1px solid var(--blue); backdrop-filter: blur(10px); }
-        
-        .btn-main { background: var(--blue); border: none; color: #000; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; }
-        .zoom-label { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 20px; font-size: 10px; color: var(--blue); }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { margin: 0; background: #000; overflow: hidden; color: #fff; font-family: sans-serif; }
+        canvas { display: block; background: radial-gradient(circle, #111, #000); }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
     </style>
 </head>
 <body>
+    <div id="ui">Jugadores online: <span id="count">0</span></div>
+    <canvas id="game"></canvas>
 
-<div id="loading-screen">
-    <div class="spinner"></div>
-    <p id="loading-text" style="margin-top:20px; color: var(--neon); letter-spacing: 2px; font-size: 12px;">SISTEMA HG VISION AI INICIANDO...</p>
-    <button id="skip-btn" onclick="iniciarManual()" style="display:none; margin-top:20px; background:none; border:1px solid #444; color:#888; padding:5px 10px; border-radius:5px;">Omitir IA y usar Manual</button>
-</div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-<div id="ui-layer">
-    <div class="ai-card">
-        <h2 style="margin:0; color:var(--neon); font-size:16px;">HG STUDIOS</h2>
-        <p style="font-size:9px; color:var(--blue); margin-bottom:10px;">PROCESADOR DE PLANOS V7.6</p>
-        <input type="file" id="fileInput" accept="image/*" style="display:none">
-        <button class="btn-main" onclick="document.getElementById('fileInput').click()">CARGAR CROQUIS</button>
-    </div>
-</div>
+        let localPlayer = { x: 100, y: 100, speed: 5 };
+        let allPlayers = {};
 
-<div class="zoom-label" id="zoom-info">Zoom: 100% | Alt+Arrastrar: Mover</div>
+        // Controles
+        const keys = {};
+        window.onkeydown = (e) => keys[e.key] = true;
+        window.onkeyup = (e) => keys[e.key] = false;
 
-<canvas id="canvas"></canvas>
-
-<script>
-    let canvas, isAiReady = false;
-
-    // 1. Verificación de carga de OpenCV
-    function checkCV() {
-        if (typeof cv !== 'undefined' && cv.Mat) {
-            isAiReady = true;
-            document.getElementById('loading-screen').style.display = 'none';
-            initCanvas();
-        } else {
-            setTimeout(checkCV, 500);
-        }
-    }
-    
-    // Si la IA tarda más de 8 segundos, mostrar botón de omitir
-    setTimeout(() => { if(!isAiReady) document.getElementById('skip-btn').style.display = 'block'; }, 8000);
-
-    function iniciarManual() {
-        document.getElementById('loading-screen').style.display = 'none';
-        initCanvas();
-    }
-
-    function initCanvas() {
-        canvas = new fabric.Canvas('canvas', {
-            width: window.innerWidth,
-            height: window.innerHeight,
-            selection: false
+        socket.on('updatePlayers', (data) => {
+            allPlayers = data;
+            document.getElementById('count').innerText = Object.keys(data).length;
         });
 
-        // --- SISTEMA DE ZOOM Y PAN ---
-        canvas.on('mouse:wheel', function(opt) {
-            let delta = opt.e.deltaY;
-            let zoom = canvas.getZoom();
-            zoom *= 0.999 ** delta;
-            if (zoom > 20) zoom = 20; if (zoom < 0.05) zoom = 0.05;
-            canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
-            document.getElementById('zoom-info').innerText = `Zoom: ${Math.round(zoom * 100)}% | Alt+Arrastrar: Mover`;
-            opt.e.preventDefault();
-            opt.e.stopPropagation();
-        });
+        function loop() {
+            // Lógica de movimiento local
+            let moved = false;
+            if (keys['ArrowUp'] || keys['w']) { localPlayer.y -= localPlayer.speed; moved = true; }
+            if (keys['ArrowDown'] || keys['s']) { localPlayer.y += localPlayer.speed; moved = true; }
+            if (keys['ArrowLeft'] || keys['a']) { localPlayer.x -= localPlayer.speed; moved = true; }
+            if (keys['ArrowRight'] || keys['d']) { localPlayer.x += localPlayer.speed; moved = true; }
 
-        canvas.on('mouse:down', function(opt) {
-            if (opt.e.altKey === true) {
-                this.isDragging = true;
-                this.lastPosX = opt.e.clientX;
-                this.lastPosY = opt.e.clientY;
+            if (moved) {
+                socket.emit('move', { x: localPlayer.x, y: localPlayer.y });
             }
-        });
 
-        canvas.on('mouse:move', function(opt) {
-            if (this.isDragging) {
-                let vpt = this.viewportTransform;
-                vpt[4] += opt.e.clientX - this.lastPosX;
-                vpt[5] += opt.e.clientY - this.lastPosY;
-                this.requestRenderAll();
-                this.lastPosX = opt.e.clientX;
-                this.lastPosY = opt.e.clientY;
-            }
-        });
-
-        canvas.on('mouse:up', function() { this.isDragging = false; });
-
-        // --- CARGA DE IMAGEN ---
-        document.getElementById('fileInput').onchange = function(e) {
-            let reader = new FileReader();
-            reader.onload = function(event) {
-                let img = new Image();
-                img.src = event.target.result;
-                img.onload = function() {
-                    let fImg = new fabric.Image(img);
-                    // Ajustar imagen al tamaño inicial del canvas
-                    let ratio = Math.min(canvas.width / img.width, canvas.height / img.height);
-                    fImg.scale(ratio);
-                    canvas.setBackgroundImage(fImg, canvas.renderAll.bind(canvas));
-                    
-                    if(isAiReady) procesarMurosIA(img);
+            // Dibujado
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let id in allPlayers) {
+                let p = allPlayers[id];
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (id === socket.id) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.stroke();
                 }
             }
-            reader.readAsDataURL(e.target.files[0]);
-        };
-    }
-
-    function procesarMurosIA(sourceImg) {
-        // Algoritmo de detección inteligente
-        let src = cv.imread(sourceImg);
-        let dst = new cv.Mat();
-        
-        cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-        cv.GaussianBlur(src, src, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-        cv.Canny(src, dst, 50, 150, 3);
-        
-        let lines = new cv.Mat();
-        cv.HoughLinesP(dst, lines, 1, Math.PI / 180, 50, 50, 10);
-
-        for (let i = 0; i < lines.rows; ++i) {
-            let x = lines.data32S[i * 4];
-            let y = lines.data32S[i * 4 + 1];
-            let x2 = lines.data32S[i * 4 + 2];
-            let y2 = lines.data32S[i * 4 + 3];
-            
-            // Dibujamos el muro detectado
-            let muro = new fabric.Line([x, y, x2, y2], {
-                stroke: '#39ff14',
-                strokeWidth: 3,
-                selectable: true,
-                opacity: 0.6
-            });
-            canvas.add(muro);
+            requestAnimationFrame(loop);
         }
-        
-        src.delete(); dst.delete(); lines.delete();
-        canvas.renderAll();
-    }
-
-    // Iniciar verificación
-    checkCV();
-</script>
+        loop();
+    </script>
 </body>
 </html>
