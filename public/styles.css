@@ -1,40 +1,67 @@
-:root { --neon: #6df7ff; --bg: #04060d; }
-body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; }
+:root {
+    --primary: #ffffff;
+    --accent: #ff3e3e;
+    --glass: rgba(0, 0, 0, 0.7);
+    --border: rgba(255, 255, 255, 0.1);
+}
 
-.screen { display: none; position: fixed; inset: 0; justify-content: center; align-items: center; }
-.screen.active { display: flex; }
+body, html { 
+    margin: 0; padding: 0; width: 100%; height: 100%; 
+    background: #000; color: #fff; font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+}
 
-.modal { background: #0b1022; padding: 2rem; border-radius: 20px; border: 1px solid #2c3760; text-align: center; width: 90%; max-width: 400px; }
-input { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #2c3760; color: white; border-radius: 8px; }
-button { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin: 5px; }
-button.primary { background: var(--neon); color: #000; }
+/* Efecto Glitch y Texturas */
+.glitch {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 4rem; font-weight: 900; letter-spacing: 10px;
+    position: relative; color: var(--primary);
+}
 
-#stage { width: 100vw; height: 100vh; display: block; }
-.hud { position: fixed; top: 20px; left: 20px; pointer-events: none; }
-#joystick { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; }
-#stick { position: absolute; width: 40px; height: 40px; background: var(--neon); border-radius: 50%; top: 30px; left: 30px; }
-.hidden { display: none; }.hidden { display: none; }
+/* Contenedores de Vidrio Esmerilado */
+.auth-container, .lobby-ui {
+    position: relative; z-index: 10;
+    backdrop-filter: blur(20px);
+    background: var(--glass);
+    border: 1px solid var(--border);
+    padding: 3rem; border-radius: 2px;
+}
 
-#lobbyScreen { padding: 20px; }
-.lobby-shell { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 16px; height: calc(100% - 40px); }
-.panel { padding: 18px; }
-.profile { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-.avatar-wrap { width: 170px; height: 170px; border-radius: 50%; border: 1px solid #3d4b7c; background: radial-gradient(circle, rgba(125,182,255,.12), rgba(94,72,161,.08)); }
-#avatarCanvas { width: 100%; height: 100%; }
-.menu-grid { display: grid; grid-template-columns: repeat(2, minmax(190px, 1fr)); gap: 10px; margin-top: 10px; }
-.rooms { margin-top: 14px; border-top: 1px solid #2f3c66; padding-top: 12px; }
-#roomsList { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; max-height: 220px; overflow: auto; }
-#roomsList li { border: 1px solid #2f3b67; border-radius: 10px; padding: 10px; display: flex; justify-content: space-between; gap: 8px; background: rgba(10,14,24,.7); }
-#roomsList button { border: 1px solid #5168b2; background: transparent; color: #dbe6ff; border-radius: 8px; cursor: pointer; padding: 6px 8px; }
+input {
+    width: 100%; background: rgba(255,255,255,0.05);
+    border: none; border-bottom: 2px solid #333;
+    padding: 15px; margin: 10px 0; color: white;
+    font-family: 'Orbitron'; transition: 0.3s;
+}
 
-#gameScreen { background: #070a12; }
-#gameCanvas { width: 100%; height: 100%; display: block; }
-.game-ui { position: fixed; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 4; }
-.chip { border: 1px solid #3a4472; border-radius: 999px; padding: 7px 11px; background: rgba(8,11,20,.78); font-size: 13px; }
-.cooldowns { display: flex; gap: 8px; align-items: center; }
-.cd-chip.busy { border-color: #8e5e67; color: #ffc8d4; background: rgba(35, 15, 20, 0.82); }
-.cd-chip.ready { border-color: #4a7369; color: #c6ffe9; background: rgba(10, 28, 23, 0.78); }
-.hp-bars { display: flex; gap: 6px; position: fixed; left: 12px; bottom: 14px; z-index: 4; }
+input:focus { border-bottom-color: var(--accent); outline: none; background: rgba(255,255,255,0.1); }
+
+button {
+    width: 100%; padding: 15px; margin: 10px 0;
+    background: white; color: black; border: none;
+    font-weight: 900; text-transform: uppercase;
+    cursor: pointer; clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
+    transition: 0.3s;
+}
+
+button:hover { background: var(--accent); color: white; transform: scale(1.02); }
+
+.btn-mega { font-size: 1.5rem; padding: 25px; margin-bottom: 20px; }
+
+/* HUD del juego */
+.game-hud {
+    position: fixed; top: 0; left: 0; width: 100%; padding: 20px;
+    pointer-events: none; display: flex; justify-content: space-between;
+}
+
+.hp-bar-container {
+    width: 300px; height: 10px; background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+#hp-fill { width: 100%; height: 100%; background: var(--accent); transition: 0.5s; }
+
+.hidden { display: none; }.hp-bars { display: flex; gap: 6px; position: fixed; left: 12px; bottom: 14px; z-index: 4; }
 .hp-bars i { width: 34px; height: 12px; border-radius: 5px; background: linear-gradient(90deg, #56ffb8, #6df7ff); border: 1px solid #3f6f70; }
 .touch-btn { position: fixed; right: 18px; bottom: 60px; width: 86px; height: 86px; border-radius: 50%; border: 1px solid #4a4f8f; background: radial-gradient(circle, rgba(136,217,255,.35), rgba(90,70,168,.3)); color: #eef4ff; font-weight: 800; letter-spacing: .6px; z-index: 4; display: none; }
 .touch-btn.dash { right: 120px; bottom: 86px; width: 76px; height: 76px; background: radial-gradient(circle, rgba(255,201,138,.35), rgba(154,98,70,.3)); }
