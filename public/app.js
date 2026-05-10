@@ -49,6 +49,12 @@ const renderedPlayers = new Map();
 const organicState = new Map();
 let analogX = 0;
 let analogY = 0;
+const camState = { x: mapSize / 2, y: mapSize / 2 };
+const shakeState = { power: 0, x: 0, y: 0 };
+
+function addShake(amount) {
+  shakeState.power = Math.min(18, shakeState.power + amount);
+}
 
 function show(screenName) {
   Object.values(screens).forEach((s) => s.classList.remove("active"));
@@ -203,6 +209,7 @@ function tryDash() {
   if (now - lastDashAt < SKILL_COOLDOWN_MS) return;
   lastDashAt = now;
   keys.dash = true;
+  addShake(5.5);
 }
 
 function tryPulse() {
@@ -210,6 +217,7 @@ function tryPulse() {
   if (now - lastPulseAt < SKILL_COOLDOWN_MS) return;
   lastPulseAt = now;
   keys.pulse = true;
+  addShake(3);
 }
 
 function joystickApply(nx, ny) {
@@ -369,15 +377,37 @@ function drawGame() {
     prev.hpBars = p.hpBars;
     renderedPlayers.set(p.username, prev);
   }
+  // Limpieza de jugadores que salieron.
+  for (const name of renderedPlayers.keys()) {
+    if (!players.some((p) => p.username === name)) {
+      renderedPlayers.delete(name);
+      organicState.delete(name);
+      viewTrail.delete(name);
+    }
+  }
+  const meRender = mePlayer ? renderedPlayers.get(me.username) : null;
+  const meVx = meRender ? meRender.x - (meRender.lx ?? meRender.x) : 0;
+  const meVy = meRender ? meRender.y - (meRender.ly ?? meRender.y) : 0;
+  const lookAhead = 170;
+  const lookX = clamp(meVx * lookAhead, -220, 220);
+  const lookY = clamp(meVy * lookAhead, -220, 220);
   const cam = {
-    x: mePlayer ? (renderedPlayers.get(me.username)?.x || mePlayer.x) : mapSize / 2,
-    y: mePlayer ? (renderedPlayers.get(me.username)?.y || mePlayer.y) : mapSize / 2
+    x: mePlayer ? (meRender?.x || mePlayer.x) + lookX : mapSize / 2,
+    y: mePlayer ? (meRender?.y || mePlayer.y) + lookY : mapSize / 2
   };
+  camState.x += (cam.x - camState.x) * 0.12;
+  camState.y += (cam.y - camState.y) * 0.12;
   const viewW = w / CAMERA_ZOOM;
   const viewH = h / CAMERA_ZOOM;
-  const view = { left: cam.x - viewW / 2, top: cam.y - viewH / 2 };
+  const view = { left: camState.x - viewW / 2, top: camState.y - viewH / 2 };
   const toScreen = (wx, wy) => ({ x: (wx - view.left) * CAMERA_ZOOM, y: (wy - view.top) * CAMERA_ZOOM });
 
+  shakeState.power *= 0.86;
+  shakeState.x = (Math.random() * 2 - 1) * shakeState.power;
+  shakeState.y = (Math.random() * 2 - 1) * shakeState.power;
+
+  ctx.save();
+  ctx.translate(shakeState.x, shakeState.y);
   ctx.fillStyle = "#090e17";
   ctx.fillRect(0, 0, w, h);
   ctx.strokeStyle = "rgba(120,138,180,.15)";
@@ -432,7 +462,30 @@ function drawGame() {
     const diff = Math.atan2(Math.sin(targetAngle - st.angle), Math.cos(targetAngle - st.angle));
     st.angle += diff * 0.25;
     if (!moving) st.stretch *= 0.92;
+    st.tail = st.tail || [];
+    if (moving && p.alive) {
+      const backX = x - Math.cos(st.angle) * (14 * CAMERA_ZOOM);
+      const backY = y - Math.sin(st.angle) * (14 * CAMERA_ZOOM);
+      st.tail.push({ x: backX, y: backY, size: (10 + st.stretch * 10) * CAMERA_ZOOM, life: 1 });
+    }
+    for (let i = st.tail.length - 1; i >= 0; i -= 1) {
+      const t = st.tail[i];
+      t.life -= 0.06;
+      t.size *= 0.985;
+      if (t.life <= 0.05) st.tail.splice(i, 1);
+    }
     organicState.set(p.username, st);
+
+    if (st.tail.length) {
+      for (const t of st.tail) {
+        ctx.fillStyle = p.username === me.username
+          ? `rgba(126, 241, 255, ${0.23 * t.life})`
+          : `rgba(192, 209, 255, ${0.17 * t.life})`;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
 
     const base = 12 * CAMERA_ZOOM;
     const sx = 1 + st.stretch;
@@ -487,6 +540,7 @@ function drawGame() {
     const el = document.createElement("i");
     hpBars.appendChild(el);
   }
+  ctx.restore();
   requestAnimationFrame(drawGame);
 }
 
