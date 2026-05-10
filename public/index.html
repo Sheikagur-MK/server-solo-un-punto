@@ -6,77 +6,46 @@
     <title>PULSE ARENA 2026</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --accent: #6366f1; --danger: #ef4444; --glass: rgba(255, 255, 255, 0.05); }
-        body, html { margin: 0; padding: 0; background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; overflow: hidden; }
+        :root { --accent: #6366f1; --glass: rgba(255, 255, 255, 0.05); }
+        body, html { margin: 0; padding: 0; background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
+        
+        .main-menu { position: absolute; width: 100%; height: 100%; z-index: 100; background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .glass-panel { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
+        
+        /* Tienda UI */
+        #shop-menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; display: none; z-index: 200; }
+        .skin-opt { width: 50px; height: 50px; border-radius: 50%; margin: 10px; cursor: pointer; display: inline-block; border: 2px solid white; }
 
-        /* Interfaz de Menú Pro */
-        .main-menu {
-            position: absolute; width: 100%; height: 100%; z-index: 100;
-            background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
+        /* Controles Móvil */
+        #touch-ui { position: fixed; bottom: 40px; width: 100%; display: none; justify-content: space-around; z-index: 150; }
+        #joystick { width: 100px; height: 100px; background: var(--glass); border-radius: 50%; border: 1px solid var(--accent); position: relative; }
+        #stick { width: 40px; height: 40px; background: var(--accent); border-radius: 50%; position: absolute; top: 30px; left: 30px; }
+        .btn-touch { width: 70px; height: 70px; border-radius: 50%; background: var(--glass); border: 2px solid var(--accent); color: white; font-weight: bold; }
 
-        .glass-panel {
-            background: var(--glass); backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-        }
-
-        .btn-action {
-            width: 320px; padding: 18px; margin: 12px; border: none; border-radius: 12px;
-            background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-            color: white; font-weight: 700; font-size: 16px; letter-spacing: 1px;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-action:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5); }
-
-        /* NPC Tutorial */
-        #npc-overlay {
-            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 600px; background: rgba(15, 23, 42, 0.9);
-            border-left: 5px solid var(--accent); padding: 20px; border-radius: 0 15px 15px 0;
-            display: none; z-index: 200; align-items: center;
-        }
-        .npc-avatar { width: 60px; height: 60px; background: var(--accent); border-radius: 50%; margin-right: 20px; }
-
-        /* Mecánica de Juego: HUD */
-        #game-hud { position: fixed; top: 20px; width: 100%; display: none; justify-content: space-between; padding: 0 30px; z-index: 50; }
-        .stat-box { background: var(--glass); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 10px; }
-
-        /* Botones Touch (Solo Android) */
-        .touch-controls { position: fixed; bottom: 40px; width: 100%; display: none; justify-content: space-around; z-index: 60; }
+        .btn-action { width: 300px; padding: 15px; margin: 10px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen" class="main-menu">
+    <div id="menu-screen" class="main-menu">
         <div class="glass-panel">
-            <h1 style="text-align:center; font-size: 3rem; margin-bottom: 30px;">PULSE <span style="color:var(--accent)">2026</span></h1>
-            <input type="text" id="user-input" placeholder="Usuario" style="width:100%; padding:15px; margin-bottom:15px; border-radius:8px; border:none; background:#0f172a; color:white;">
-            <input type="password" id="pass-input" placeholder="Contraseña" style="width:100%; padding:15px; margin-bottom:20px; border-radius:8px; border:none; background:#0f172a; color:white;">
-            <button class="btn-action" onclick="login()">ACCEDER A LA ARENA</button>
-            <p style="text-align:center; font-size:0.8rem; opacity:0.5;">v1.0.4 Private Beta Access</p>
+            <h1>PULSE <span style="color:var(--accent)">2026</span></h1>
+            <div id="user-stats">COINS: <span id="coin-val">1000</span></div>
+            <button class="btn-action" onclick="enterGame()">BUSCAR PARTIDA</button>
+            <button class="btn-action" onclick="toggleShop(true)" style="background: #1e293b;">TIENDA DE SKINS</button>
         </div>
     </div>
 
-    <div id="menu-screen" class="main-menu" style="display:none;">
-        <div class="stat-box" style="position:absolute; top:20px; right:20px;">
-            <i class="fa-solid fa-coins" style="color:#fbbf24"></i> <span id="coins-display">1,000</span>
-        </div>
-        <h1 class="logo">ARENA HUB</h1>
-        <button class="btn-action" onclick="startTutorial()"><i class="fa-solid fa-chalkboard-user"></i> TUTORIAL (NUEVO)</button>
-        <button class="btn-action" onclick="enterMatch()"><i class="fa-solid fa-play"></i> BUSCAR PARTIDA</button>
-        <button class="btn-menu" onclick="openShop()"><i class="fa-solid fa-cart-shopping"></i> TIENDA DE NÚCLEOS</button>
-        <button class="btn-menu" onclick="openSettings()"><i class="fa-solid fa-gamepad"></i> CONFIGURACIÓN</button>
+    <div id="shop-menu" class="glass-panel">
+        <h3>EQUIPAMIENTO</h3>
+        <div class="skin-opt" style="background: #f43f5e;" onclick="buySkin('#f43f5e', 500)"></div>
+        <div class="skin-opt" style="background: #10b981;" onclick="buySkin('#10b981', 800)"></div>
+        <button class="btn-action" onclick="toggleShop(false)">CERRAR</button>
     </div>
 
-    <div id="npc-overlay">
-        <div class="npc-avatar"></div>
-        <div>
-            <b id="npc-name">OPERADOR X-26:</b>
-            <p id="npc-text">Bienvenido recluta. Te enseñaré a sobrevivir en la arena.</p>
-        </div>
+    <div id="touch-ui">
+        <div id="joystick"><div id="stick"></div></div>
+        <button class="btn-touch" onclick="triggerPulse()">PULSO</button>
     </div>
 
     <canvas id="game-canvas" style="display:none;"></canvas>
@@ -84,68 +53,67 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        let currentNPCStep = 0;
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const isMobile = /Android|iPhone/i.test(navigator.userAgent);
+        let myData = { username: "User_" + Math.floor(Math.random()*999), coins: 1000 };
 
-        // --- SISTEMA DE TUTORIAL CON NPC ---
-        const tutorialSteps = [
-            "Usa WASD o el Joystick para mover tu núcleo de energía.",
-            "Tu arma es el PULSO. Pulsa ESPACIO (o botón rojo) para lanzar una onda de choque.",
-            "Si un enemigo lanza un pulso, usa el DASH (SHIFT o botón azul) para volverte invulnerable.",
-            "Cada vez que elimines a alguien, el alcance de tu pulso subirá de nivel (Máx 6).",
-            "¡Recuerda! Solo tienes 3 barras de integridad antes de explotar. ¡Buena suerte!"
-        ];
+        // AUTO-DETECCIÓN DE CONTROLES
+        window.onload = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if(isMobile) document.getElementById('touch-ui').style.display = 'flex';
+            else window.addEventListener('keydown', handleKeyboard);
+        };
 
-        function startTutorial() {
+        function handleKeyboard(e) {
+            if(e.code === 'Space') triggerPulse();
+            // Controles WASD aquí...
+        }
+
+        function toggleShop(show) { document.getElementById('shop-menu').style.display = show ? 'block' : 'none'; }
+
+        async function buySkin(color, price) {
+            const res = await fetch('/api/buy-skin', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: myData.username, skinColor: color, price: price })
+            });
+            const data = await res.json();
+            if(data.success) {
+                myData.coins = data.coins;
+                document.getElementById('coin-val').innerText = data.coins;
+                alert("Skin Equipada");
+            }
+        }
+
+        function enterGame() {
             document.getElementById('menu-screen').style.display = 'none';
-            document.getElementById('npc-overlay').style.display = 'flex';
-            nextTutorialStep();
+            canvas.style.display = 'block';
+            socket.emit('joinArena', { username: myData.username });
+            requestAnimationFrame(gameLoop);
         }
 
-        function nextTutorialStep() {
-            if(currentNPCStep < tutorialSteps.length) {
-                document.getElementById('npc-text').innerText = tutorialSteps[currentNPCStep];
-                currentNPCStep++;
-                setTimeout(nextTutorialStep, 4000);
-            } else {
-                document.getElementById('npc-overlay').style.display = 'none';
-                enterMatch();
-            }
+        function triggerPulse() { socket.emit('emitPulse'); }
+
+        // JOYSTICK ANDROID LÓGICA
+        if(isMobile) {
+            const stick = document.getElementById('stick');
+            document.getElementById('joystick').addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                const rect = e.target.getBoundingClientRect();
+                let x = touch.clientX - rect.left - 50;
+                let y = touch.clientY - rect.top - 50;
+                stick.style.left = (x + 30) + 'px';
+                stick.style.top = (y + 30) + 'px';
+                // Emitir movimiento al server...
+            });
         }
 
-        // --- LÓGICA DE LOGIN (Mockup para conectar a server.js) ---
-        function login() {
-            const user = document.getElementById('user-input').value;
-            if(user) {
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('menu-screen').style.display = 'flex';
-                // Aquí iría el fetch('/login') a tu MongoDB
-            }
-        }
-
-        // --- MECÁNICA PROFESIONAL: PULSO Y DASH ---
-        // Se integra la lógica del paso anterior pero con efectos visuales de distorsión
-        function drawPlayer(ctx, p, isMyPlayer) {
-            ctx.save();
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = p.color;
-            
-            // Cuerpo del jugador (Efecto cristal)
-            let grad = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 15);
-            grad.addColorStop(0, '#fff');
-            grad.addColorStop(1, p.color);
-            ctx.fillStyle = grad;
-            
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 15 + (p.level * 2), 0, Math.PI*2);
-            ctx.fill();
-            
-            // Barras de vida modernas
-            for(let i=0; i<3; i++) {
-                ctx.fillStyle = i < p.lives ? '#10b981' : '#334155';
-                ctx.roundRect(p.x - 20 + (i*15), p.y - 40, 12, 4, 2);
-                ctx.fill();
-            }
-            ctx.restore();
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Dibujar jugadores con tu estilo "Cristal" de index (7).html
+            requestAnimationFrame(gameLoop);
         }
     </script>
 </body>
