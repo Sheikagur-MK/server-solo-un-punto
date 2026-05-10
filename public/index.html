@@ -3,179 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PULSE ARENA 2026</title>
+    <title>PULSE ARENA 2026 | OFFICIAL</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --accent: #6366f1; --glass: rgba(255, 255, 255, 0.05); }
-        body, html { margin: 0; padding: 0; background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
+        :root { --accent: #6366f1; --glass: rgba(255, 255, 255, 0.05); --bg: #020617; }
+        body, html { margin: 0; padding: 0; background: var(--bg); color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; touch-action: none; }
         
-        .main-menu { position: absolute; width: 100%; height: 100%; z-index: 100; background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .glass-panel { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
+        /* Pantallas */
+        .screen { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%); }
+        .hidden { display: none !important; }
+
+        /* Paneles de Cristal */
+        .glass-panel { background: var(--glass); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; padding: 50px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); width: 80%; max-width: 450px; text-align: center; }
         
-        /* Tienda UI */
-        #shop-menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; display: none; z-index: 200; }
-        .skin-opt { width: 50px; height: 50px; border-radius: 50%; margin: 10px; cursor: pointer; display: inline-block; border: 2px solid white; }
+        /* Inputs y Botones */
+        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: none; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--accent); }
+        .btn-main { width: 100%; padding: 18px; margin: 10px 0; border: none; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 1.1rem; }
+        .btn-main:hover { transform: scale(1.03); filter: brightness(1.2); }
+        .btn-secondary { background: #1e293b; color: white; }
 
-        /* Controles Móvil */
-        #touch-ui { position: fixed; bottom: 40px; width: 100%; display: none; justify-content: space-around; z-index: 150; }
-        #joystick { width: 100px; height: 100px; background: var(--glass); border-radius: 50%; border: 1px solid var(--accent); position: relative; }
-        #stick { width: 40px; height: 40px; background: var(--accent); border-radius: 50%; position: absolute; top: 30px; left: 30px; }
-        .btn-touch { width: 70px; height: 70px; border-radius: 50%; background: var(--glass); border: 2px solid var(--accent); color: white; font-weight: bold; }
+        /* HUD de Juego */
+        #hud { position: fixed; top: 20px; width: 100%; display: none; justify-content: space-between; padding: 0 40px; pointer-events: none; z-index: 50; }
+        .stat-card { background: var(--glass); backdrop-filter: blur(10px); padding: 15px 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); }
 
-        .btn-action { width: 300px; padding: 15px; margin: 10px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; font-weight: bold; cursor: pointer; }
+        /* Controles Móviles (Android) */
+        #touch-controls { position: fixed; bottom: 50px; width: 100%; display: none; justify-content: space-around; align-items: center; z-index: 100; }
+        #joystick { width: 150px; height: 150px; background: var(--glass); border-radius: 50%; border: 2px solid var(--accent); position: relative; }
+        #stick { width: 60px; height: 60px; background: var(--accent); border-radius: 50%; position: absolute; top: 45px; left: 45px; box-shadow: 0 0 20px var(--accent); }
+        .action-btn { width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--accent); background: var(--glass); color: white; font-weight: bold; }
+
+        /* Tutorial NPC */
+        #npc-box { position: fixed; top: 100px; background: rgba(15,23,42,0.95); padding: 25px; border-radius: 20px; border-left: 6px solid var(--accent); width: 80%; max-width: 500px; display: none; z-index: 200; }
+
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="menu-screen" class="main-menu">
+    <div id="auth-screen" class="screen">
         <div class="glass-panel">
-            <h1>PULSE <span style="color:var(--accent)">2026</span></h1>
-            <div id="user-stats">COINS: <span id="coin-val">1000</span></div>
-            <button class="btn-action" onclick="enterGame()">BUSCAR PARTIDA</button>
-            <button class="btn-action" onclick="toggleShop(true)" style="background: #1e293b;">TIENDA DE SKINS</button>
+            <h1 style="font-size: 3rem; margin-bottom: 5px;">PULSE <span style="color:var(--accent)">2026</span></h1>
+            <p style="opacity: 0.6; margin-bottom: 30px;">ACCESO AL SISTEMA CENTRAL</p>
+            <input type="text" id="user-in" placeholder="ID de Usuario">
+            <input type="password" id="pass-in" placeholder="Contraseña">
+            <button class="btn-main" onclick="auth('login')">INICIAR SESIÓN</button>
+            <button class="btn-main btn-secondary" onclick="auth('register')">CREAR NUEVA CUENTA</button>
         </div>
     </div>
 
-    <div id="shop-menu" class="glass-panel">
-        <h3>EQUIPAMIENTO</h3>
-        <div class="skin-opt" style="background: #f43f5e;" onclick="buySkin('#f43f5e', 500)"></div>
-        <div class="skin-opt" style="background: #10b981;" onclick="buySkin('#10b981', 800)"></div>
-        <button class="btn-action" onclick="toggleShop(false)">CERRAR</button>
+    <div id="menu-screen" class="screen hidden">
+        <div class="glass-panel">
+            <h2 id="welcome-txt">RECLUTA</h2>
+            <div id="user-stats" style="margin-bottom: 20px;">
+                <span class="stat-card"><i class="fas fa-coins" style="color: gold;"></i> <span id="coin-val">1000</span></span>
+            </div>
+            <button class="btn-main" onclick="startArena()">BUSCAR PARTIDA</button>
+            <button class="btn-main btn-secondary" onclick="openShop()"><i class="fas fa-shopping-cart"></i> TIENDA DE SKINS</button>
+            <button class="btn-main btn-secondary" onclick="showTutorial()"><i class="fas fa-info-circle"></i> TUTORIAL</button>
+            <button class="btn-main btn-secondary" onclick="openSettings()"><i class="fas fa-cog"></i> AJUSTES DE MANDO</button>
+        </div>
     </div>
 
-    <div id="touch-ui">
+    <div id="shop-screen" class="screen hidden">
+        <div class="glass-panel">
+            <h3>TIENDA DE NÚCLEOS</h3>
+            <div id="skins-list" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 20px 0;">
+                <div onclick="selectSkin('#ef4444')" style="background:#ef4444; width:50px; height:50px; border-radius:50%; border:3px solid white; cursor:pointer;"></div>
+                <div onclick="selectSkin('#10b981')" style="background:#10b981; width:50px; height:50px; border-radius:50%; cursor:pointer;"></div>
+                <div onclick="selectSkin('#f59e0b')" style="background:#f59e0b; width:50px; height:50px; border-radius:50%; cursor:pointer;"></div>
+            </div>
+            <button class="btn-main btn-secondary" onclick="closeScreen()">VOLVER</button>
+        </div>
+    </div>
+
+    <div id="hud">
+        <div class="stat-card">VIDAS: <span id="lives-ui">3</span></div>
+        <div class="stat-card">NIVEL ONDA: <span id="lvl-ui">1</span>/6</div>
+    </div>
+
+    <div id="npc-box">
+        <b id="npc-name" style="color:var(--accent)">OPERADOR X-26:</b>
+        <p id="npc-text"></p>
+        <button class="btn-main" style="width: auto; padding: 10px 20px;" onclick="nextTutorial()">ENTENDIDO</button>
+    </div>
+
+    <div id="touch-controls">
         <div id="joystick"><div id="stick"></div></div>
-        <button class="btn-touch" onclick="triggerPulse()">PULSO</button>
+        <button class="action-btn" onclick="emitPulse()">PULSO</button>
     </div>
 
-    <canvas id="game-canvas" style="display:none;"></canvas>
+    <canvas id="game-canvas" class="hidden"></canvas>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        const isMobile = /Android|iPhone/i.test(navigator.userAgent);
-        let myData = { username: "User_" + Math.floor(Math.random()*999), coins: 1000 };
+        let myData = null;
+        let players = {};
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        
+        // --- AUTENTICACIÓN REAL ---
+        async function auth(mode) {
+            const user = document.getElementById('user-in').value;
+            const pass = document.getElementById('pass-in').value;
+            if(!user || !pass) return alert("Completa los datos");
 
-        // AUTO-DETECCIÓN DE CONTROLES
-        window.onload = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            if(isMobile) document.getElementById('touch-ui').style.display = 'flex';
-            else window.addEventListener('keydown', handleKeyboard);
-        };
-
-        function handleKeyboard(e) {
-            if(e.code === 'Space') triggerPulse();
-            // Controles WASD aquí...
-        }
-
-        function toggleShop(show) { document.getElementById('shop-menu').style.display = show ? 'block' : 'none'; }
-
-        async function buySkin(color, price) {
-            const res = await fetch('/api/buy-skin', {
+            const res = await fetch('/api/auth', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: myData.username, skinColor: color, price: price })
+                body: JSON.stringify({ username: user, password: pass, mode: mode })
             });
             const data = await res.json();
-            if(data.success) {
-                myData.coins = data.coins;
-                document.getElementById('coin-val').innerText = data.coins;
-                alert("Skin Equipada");
+            if(res.ok) {
+                myData = data.user;
+                document.getElementById('coin-val').innerText = myData.coins;
+                document.getElementById('welcome-txt').innerText = "HOLA, " + myData.username;
+                switchScreen('menu-screen');
+            } else {
+                alert(data.error);
             }
         }
-// --- FUNCIÓN DE ACCESO REAL ---
-async function login() {
-    const user = document.getElementById('user-input').value;
-    const pass = document.getElementById('pass-input').value;
 
-    if(!user || !pass) return alert("Completa los datos");
+        // --- SISTEMA DE NAVEGACIÓN ---
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
 
-    const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username: user, password: pass })
-    });
+        function openShop() { switchScreen('shop-screen'); }
+        function closeScreen() { switchScreen('menu-screen'); }
 
-    const data = await res.json();
-    if(res.ok) {
-        myData = data; // Guardamos datos del usuario (monedas, skin)
-        document.getElementById('coin-val').innerText = data.coins;
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('menu-screen').style.display = 'flex';
-    } else {
-        alert(data.error);
-    }
-}
+        // --- TUTORIAL NPC ---
+        let tutIndex = 0;
+        const messages = [
+            "Mueve tu núcleo con WASD o el Joystick táctil.",
+            "Tu única arma es la ONDA DE PULSO (Espacio o Botón Rojo).",
+            "Tienes 3 barras de integridad energética. ¡No dejes que te toquen!",
+            "Cada enemigo que elimines aumentará el alcance de tu onda (Máx Nivel 6).",
+            "El último núcleo activo en la arena será el ganador. ¡Suerte!"
+        ];
 
-// --- CONTROLES HÍBRIDOS (DETECCIÓN) ---
-if(isMobile) {
-    // Lógica de Joystick mejorada
-    const joystick = document.getElementById('joystick');
-    const stick = document.getElementById('stick');
-    
-    joystick.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const rect = joystick.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        let moveX = touch.clientX - centerX;
-        let moveY = touch.clientY - centerY;
-        
-        // Limitar movimiento del stick visual
-        const distance = Math.min(Math.sqrt(moveX**2 + moveY**2), 40);
-        const angle = Math.atan2(moveY, moveX);
-        
-        stick.style.transform = `translate(${Math.cos(angle)*distance}px, ${Math.sin(angle)*distance}px)`;
-        
-        // Enviar movimiento al servidor
-        socket.emit('playerMove', { 
-            x: players[myId].x + Math.cos(angle)*5, 
-            y: players[myId].y + Math.sin(angle)*5 
-        });
-    });
-} else {
-    // Controles de Teclado PC
-    window.addEventListener('keydown', (e) => {
-        const speed = 5;
-        if(e.key === 'w') socket.emit('playerMove', { y: players[myId].y - speed });
-        if(e.key === 's') socket.emit('playerMove', { y: players[myId].y + speed });
-        if(e.key === 'a') socket.emit('playerMove', { x: players[myId].x - speed });
-        if(e.key === 'd') socket.emit('playerMove', { x: players[myId].x + speed });
-    });
-}
-        function enterGame() {
-            document.getElementById('menu-screen').style.display = 'none';
-            canvas.style.display = 'block';
-            socket.emit('joinArena', { username: myData.username });
+        function showTutorial() {
+            document.getElementById('npc-box').style.display = 'block';
+            nextTutorial();
+        }
+
+        function nextTutorial() {
+            if(tutIndex < messages.length) {
+                document.getElementById('npc-text').innerText = messages[tutIndex++];
+            } else {
+                document.getElementById('npc-box').style.display = 'none';
+                tutIndex = 0;
+            }
+        }
+
+        // --- INICIAR JUEGO ---
+        function startArena() {
+            switchScreen('none');
+            document.getElementById('game-canvas').classList.remove('hidden');
+            document.getElementById('hud').style.display = 'flex';
+            if(isMobile) document.getElementById('touch-controls').style.display = 'flex';
+            
+            socket.emit('joinArena', myData);
             requestAnimationFrame(gameLoop);
         }
 
-        function triggerPulse() { socket.emit('emitPulse'); }
+        // --- CONTROLES DE COMBATE ---
+        function emitPulse() { socket.emit('emitPulse'); }
 
-        // JOYSTICK ANDROID LÓGICA
-        if(isMobile) {
-            const stick = document.getElementById('stick');
-            document.getElementById('joystick').addEventListener('touchmove', (e) => {
-                const touch = e.touches[0];
-                const rect = e.target.getBoundingClientRect();
-                let x = touch.clientX - rect.left - 50;
-                let y = touch.clientY - rect.top - 50;
-                stick.style.left = (x + 30) + 'px';
-                stick.style.top = (y + 30) + 'px';
-                // Emitir movimiento al server...
-            });
-        }
+        // Teclado PC
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space') emitPulse();
+            if(myData) {
+                let speed = 5;
+                if(e.key === 'w') myData.y -= speed;
+                if(e.key === 's') myData.y += speed;
+                if(e.key === 'a') myData.x -= speed;
+                if(e.key === 'd') myData.x += speed;
+                socket.emit('playerMove', { x: myData.x, y: myData.y });
+            }
+        });
+
+        // --- RENDERIZADO Y FÍSICAS ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
 
         function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Dibujar jugadores con tu estilo "Cristal" de index (7).html
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+
+            for(let id in players) {
+                const p = players[id];
+                
+                // Dibujar Jugador Estilo Cristal
+                ctx.save();
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 20 + (p.level * 2), 0, Math.PI*2);
+                ctx.fill();
+                
+                // HUD sobre el jugador
+                ctx.fillStyle = "white";
+                ctx.font = "12px Arial";
+                ctx.fillText(p.username + " LVL " + p.level, p.x - 20, p.y - 40);
+                
+                if(id === socket.id) {
+                    document.getElementById('lives-ui').innerText = p.lives;
+                    document.getElementById('lvl-ui').innerText = p.level;
+                }
+                ctx.restore();
+            }
             requestAnimationFrame(gameLoop);
         }
+
+        socket.on('syncArena', (data) => { players = data; });
+        socket.on('visualPulse', (data) => {
+            // Aquí se dibuja la onda expansiva visualmente
+        });
     </script>
 </body>
 </html>
