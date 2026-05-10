@@ -1,4 +1,4 @@
-require('dotenv').config(); // ¡Esto ya no fallará!
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -8,63 +8,104 @@ const bcrypt = require('bcryptjs');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// CONEXIÓN MONGO
+// --- CONEXIÓN A BASE DE DATOS ---
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("💎 Nucleo de Datos 2026 Conectado"))
-  .catch(err => console.error("❌ Error en DB:", err));
+    .then(() => console.log("💎 NÚCLEO DE DATOS 2026 CONECTADO"))
+    .catch(err => console.error("❌ FALLO CRÍTICO EN DB:", err));
 
-// MODELO DE JUGADOR (Monetizable)
+// --- MODELO DE USUARIO (MONETIZACIÓN Y PROGRESO) ---
 const User = mongoose.model('User', new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     coins: { type: Number, default: 1000 },
-    inventory: { skins: { type: Array, default: ['#6366f1'] } }
+    xp: { type: Number, default: 0 },
+    skins: { type: Array, default: ['#6366f1'] },
+    activeSkin: { type: String, default: '#6366f1' }
 }));
 
-// RUTA DE REGISTRO / LOGIN
+// --- SISTEMA DE AUTENTICACIÓN REAL ---
 app.post('/api/auth', async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, mode } = req.body;
     try {
-        let user = await User.findOne({ username });
-        if (!user) {
+        if (mode === 'register') {
             const hashed = await bcrypt.hash(password, 10);
-            user = new User({ username, password: hashed });
+            const user = new User({ username, password: hashed });
             await user.save();
+            return res.json({ success: true, user: { username, coins: 1000, skin: '#6366f1' } });
         } else {
-            const match = await bcrypt.compare(password, user.password);
-            if (!match) return res.status(401).json({ error: "Password Incorrecto" });
+            const user = await User.findOne({ username });
+            if (user && await bcrypt.compare(password, user.password)) {
+                return res.json({ success: true, user: { username, coins: user.coins, skin: user.activeSkin } });
+            }
+            return res.status(401).json({ error: "Credenciales inválidas" });
         }
-        res.json({ username: user.username, coins: user.coins });
-    } catch (e) { res.status(500).json({ error: "Error de Servidor" }); }
+    } catch (e) { res.status(400).json({ error: "El usuario ya existe o error de red" }); }
 });
 
-// LÓGICA DE TIENDA (Para sacar dinero)
-app.post('/api/shop/buy', async (req, res) => {
-    const { username, price, skinColor } = req.body;
-    const user = await User.findOne({ username });
-    if (user.coins >= price) {
-        user.coins -= price;
-        user.inventory.skins.push(skinColor);
-        await user.save();
-        res.json({ success: true, coins: user.coins });
-    } else {
-        res.status(400).json({ error: "Fondos insuficientes" });
-    }
-});
+// --- LÓGICA DE LA ARENA DE COMBATE ---
+let activePlayers = {};
 
-let players = {};
 io.on('connection', (socket) => {
-    socket.on('joinArena', (data) => {
-        players[socket.id] = { id: socket.id, x: 400, y: 300, ...data };
-        io.emit('sync', players);
+    socket.on('joinArena', (userData) => {
+        activePlayers[socket.id] = {
+            id: socket.id,
+            username: userData.username,
+            x: Math.random() * 1000,
+            y: Math.random() * 1000,
+            lives: 3,
+            level: 1, // Nivel de onda inicial
+            color: userData.skin || '#6366f1',
+            isDashing: false
+        };
+        io.emit('syncArena', activePlayers);
     });
-    // ... resto de lógica de movimiento ...
+
+    socket.on('playerMove', (data) => {
+        if (activePlayers[socket.id]) {
+            activePlayers[socket.id].x = data.x;
+            activePlayers[socket.id].y = data.y;
+            socket.broadcast.emit('updatePos', activePlayers[socket.id]);
+        }
+    });
+
+    socket.on('emitPulse', () => {
+        const attacker = activePlayers[socket.id];
+        if (!attacker) return;
+
+        // Mecánica: Radio aumenta según el nivel (Máximo nivel 6)
+        const pulseRadius = 50 + (attacker.level * 30);
+        
+        io.emit('visualPulse', { x: attacker.x, y: attacker.y, radius: pulseRadius, color: attacker.color });
+
+        // Detección de colisiones
+        for (let targetId in activePlayers) {
+            if (targetId === socket.id) continue;
+            const target = activePlayers[targetId];
+            const dist = Math.hypot(attacker.x - target.x, attacker.y - target.y);
+
+            if (dist < pulseRadius) {
+                target.lives -= 1;
+                if (target.lives <= 0) {
+                    // El atacante sube de nivel al matar (Máximo 6)
+                    if (attacker.level < 6) attacker.level++;
+                    io.to(targetId).emit('eliminated');
+                    delete activePlayers[targetId];
+                }
+            }
+        }
+        io.emit('syncArena', activePlayers);
+    });
+
+    socket.on('disconnect', () => {
+        delete activePlayers[socket.id];
+        io.emit('syncArena', activePlayers);
+    });
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`🚀 PULSE ARENA 2026 activo en ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 SERVIDOR 2026 CORRIENDO EN PUERTO ${PORT}`));
