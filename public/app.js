@@ -1,40 +1,97 @@
-const qs = (s) => document.querySelector(s);
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const socket = io();
+const canvas = document.getElementById("stage");
+const ctx = canvas.getContext("2d");
 
-const screens = {
-  intro: qs("#introScreen"),
-  auth: qs("#authScreen"),
-  lobby: qs("#lobbyScreen"),
-  game: qs("#gameScreen")
+let me = null;
+let roomState = { players: [] };
+let organicTrail = new Map(); // Para el efecto elástico
+
+// --- AUTH LOGIC ---
+document.getElementById("btnLogin").onclick = async () => {
+    const isReg = !document.getElementById("user").classList.contains("hidden");
+    const endpoint = isReg ? "/api/auth/register" : "/api/auth/login";
+    const payload = {
+        email: document.getElementById("email").value,
+        password: document.getElementById("pass").value,
+        username: document.getElementById("user").value
+    };
+
+    const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (data.token) {
+        me = data.user;
+        document.getElementById("authScreen").classList.remove("active");
+        document.getElementById("gameScreen").classList.add("active");
+        socket.emit("join_game", { roomId: "Arena_1" });
+        render();
+    }
 };
 
-const introCanvas = qs("#introCanvas");
-const gameCanvas = qs("#gameCanvas");
-const avatarCanvas = qs("#avatarCanvas");
-const authForm = qs("#authForm");
-const tabLogin = qs("#tabLogin");
-const tabRegister = qs("#tabRegister");
-const usernameInput = qs("#usernameInput");
-const emailInput = qs("#emailInput");
-const passwordInput = qs("#passwordInput");
-const authMsg = qs("#authMsg");
-const welcomeUser = qs("#welcomeUser");
-const coinsLabel = qs("#coinsLabel");
-const roomsList = qs("#roomsList");
-const lobbyMsg = qs("#lobbyMsg");
-const hpBars = qs("#hpBars");
-const gameTopLeft = qs("#gameTopLeft");
-const gameTopRight = qs("#gameTopRight");
-const cooldownPulse = qs("#cooldownPulse");
-const cooldownDash = qs("#cooldownDash");
-const touchPulse = qs("#touchPulse");
-const touchDash = qs("#touchDash");
-const touchMove = qs("#touchMove");
-const touchStick = qs("#touchStick");
+document.getElementById("btnToggleReg").onclick = () => {
+    document.getElementById("user").classList.toggle("hidden");
+};
 
-let mode = "login";
-let token = localStorage.getItem("token") || "";
-let me = null;
+// --- GAME LOGIC ---
+socket.on("state", (state) => { roomState = state; });
+
+function render() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.fillStyle = "#04060d";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const myData = roomState.players.find(p => p.id === socket.id);
+    if (!myData) return requestAnimationFrame(render);
+
+    const camX = canvas.width / 2 - myData.x;
+    const camY = canvas.height / 2 - myData.y;
+
+    roomState.players.forEach(p => {
+        // Lógica de Movimiento Orgánico (Efecto Gusano/Elástico)
+        let trail = organicTrail.get(p.id);
+        if (!trail) {
+            trail = Array(8).fill({ x: p.x, y: p.y });
+            organicTrail.set(p.id, trail);
+        }
+
+        // El primer punto sigue al jugador
+        trail[0] = { x: p.x, y: p.y };
+        // Los demás puntos siguen al anterior con retraso
+        for (let i = 1; i < trail.length; i++) {
+            trail[i] = {
+                x: trail[i].x + (trail[i - 1].x - trail[i].x) * 0.3,
+                y: trail[i].y + (trail[i - 1].y - trail[i].y) * 0.3
+            };
+        }
+
+        // Dibujar rastro
+        trail.forEach((t, i) => {
+            ctx.globalAlpha = 1 - (i / trail.length);
+            ctx.fillStyle = p.id === socket.id ? "#6df7ff" : "#b28cff";
+            ctx.beginPath();
+            ctx.arc(t.x + camX, t.y + camY, 15 - i, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    });
+
+    requestAnimationFrame(render);
+}
+
+// Joystick Simple
+let moveDir = { x: 0, y: 0 };
+window.addEventListener("keydown", (e) => {
+    if (e.key === "w") moveDir.y = -1;
+    if (e.key === "s") moveDir.y = 1;
+    if (e.key === "a") moveDir.x = -1;
+    if (e.key === "d") moveDir.x = 1;
+    socket.emit("move", moveDir);
+});
+window.addEventListener("keyup", () => { moveDir = { x: 0, y: 0 }; socket.emit("move", moveDir); });let me = null;
 let socket = null;
 let currentRoomId = null;
 let mapSize = 5000;
