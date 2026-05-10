@@ -8,40 +8,43 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// --- CONEXIÓN MONGO (Respetada) ---
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("🔥 Base de datos conectada con éxito"))
-  .catch(err => console.error("❌ Error al conectar MongoDB:", err));
+  .then(() => console.log("🔥 DB Conectada"))
+  .catch(err => console.error("❌ Error DB:", err));
 
-// Esto le dice a Node que sirva tus archivos estáticos (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ruta principal para cargar tu index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-let rooms = {};
+let players = {}; // Objeto para guardar posiciones
 
 io.on('connection', (socket) => {
-    socket.on('joinRoom', (room) => {
-        socket.join(room);
-        if (!rooms[room]) rooms[room] = [];
-        rooms[room].push(socket.id);
-        io.to(room).emit('roomUpdate', rooms[room]);
+    console.log('Nuevo jugador:', socket.id);
+
+    socket.on('joinRoom', () => {
+        // Posición inicial aleatoria
+        players[socket.id] = {
+            x: Math.random() * 500,
+            y: Math.random() * 500,
+            color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+            id: socket.id
+        };
+        socket.emit('init', players);
+        socket.broadcast.emit('newPlayer', players[socket.id]);
     });
 
-    socket.on('buyItem', (data) => {
-        socket.emit('purchaseSuccess', { item: data.item });
+    // Recibir movimiento del cliente
+    socket.on('move', (data) => {
+        if (players[socket.id]) {
+            players[socket.id].x = data.x;
+            players[socket.id].y = data.y;
+            socket.broadcast.emit('playerMoved', players[socket.id]);
+        }
     });
 
     socket.on('disconnect', () => {
-        for (let r in rooms) {
-            rooms[r] = rooms[r].filter(id => id !== socket.id);
-            io.to(r).emit('roomUpdate', rooms[r]);
-        }
+        delete players[socket.id];
+        io.emit('playerDisconnected', socket.id);
     });
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log(`🚀 HG Studios activo en puerto ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 HG Studios en puerto ${PORT}`));
