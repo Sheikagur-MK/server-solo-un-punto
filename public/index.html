@@ -3,29 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GEO-STORM 2026</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Pulse Arena</title>
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <div id="app">
-    <section id="authScreen" class="screen active">
-      <div class="card">
-        <h1>GEO-STORM</h1>
-        <button onclick="joinGame()">INICIAR SISTEMA</button>
+    <section id="introScreen" class="screen active">
+      <canvas id="introCanvas"></canvas>
+      <div class="intro-overlay">
+        <h1>PULSE ARENA</h1>
+        <p>1 punto. 1 onda. 1 vencedor.</p>
       </div>
     </section>
 
-    <section id="gameScreen" class="screen">
-      <canvas id="gameCanvas"></canvas>
-      <div class="hud">
-        <div id="status">VIVOS: 0</div>
+    <section id="authScreen" class="screen">
+      <div class="card auth-card">
+        <h2>Bienvenido</h2>
+        <p class="muted">Inicia sesion o create una cuenta para jugar online.</p>
+        <div class="tabs">
+          <button id="tabLogin" class="tab active">Inicia sesion</button>
+          <button id="tabRegister" class="tab">Registrate</button>
+        </div>
+        <form id="authForm">
+          <input id="usernameInput" placeholder="Usuario (solo registro)" class="hidden">
+          <input id="emailInput" type="email" placeholder="Correo">
+          <input id="passwordInput" type="password" placeholder="Contrasena">
+          <button type="submit" class="btn">Continuar</button>
+        </form>
+        <p id="authMsg" class="muted small"></p>
       </div>
     </section>
-  </div>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>    <section id="lobbyScreen" class="screen">
+
+    <section id="lobbyScreen" class="screen">
       <div class="lobby-shell">
         <aside class="panel profile">
           <div class="avatar-wrap"><canvas id="avatarCanvas"></canvas></div>
@@ -34,6 +43,47 @@
           <button id="logoutBtn" class="btn ghost">Cerrar sesion</button>
         </aside>
         <main class="panel menu">
+          <h2>Lobby</h2>
+          <div class="menu-grid">
+            <button id="btnOnline" class="btn big">Iniciar partida online</button>
+            <button id="btnTutorial" class="btn big ghost">Tutorial</button>
+            <button id="btnPrivate" class="btn big ghost">Partida privada</button>
+            <button id="btnOptions" class="btn big ghost">Opciones</button>
+            <button id="btnStore" class="btn big ghost">Tienda</button>
+          </div>
+          <p id="lobbyMsg" class="muted"></p>
+          <div class="rooms">
+            <h4>Salas activas</h4>
+            <ul id="roomsList"></ul>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen">
+      <canvas id="gameCanvas"></canvas>
+      <div class="game-ui">
+        <div id="gameTopLeft" class="chip">Sala</div>
+        <div class="cooldowns">
+          <div id="cooldownPulse" class="chip cd-chip">PULSE listo</div>
+          <div id="cooldownDash" class="chip cd-chip">DASH listo</div>
+        </div>
+        <div id="gameTopRight" class="chip">Vivos: 0</div>
+        <div id="hpBars" class="hp-bars"></div>
+      </div>
+      <div id="touchMove" class="touch-move">
+        <div id="touchStick" class="touch-stick"></div>
+      </div>
+      <button id="touchPulse" class="touch-btn">PULSE</button>
+      <button id="touchDash" class="touch-btn dash">DASH</button>
+      <button id="backLobbyBtn" class="btn tiny">Volver al lobby</button>
+    </section>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
           <h2>Lobby</h2>
           <div class="menu-grid">
             <button id="btnOnline" class="btn big">Iniciar partida online</button>
