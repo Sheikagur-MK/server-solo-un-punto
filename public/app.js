@@ -1,14 +1,12 @@
 /**
- * PULSE ARENA - Cliente Optimizado
- * Lógica de juego con movimiento orgánico tipo "gusano"
+ * PULSE ARENA - Cliente Corregido
  */
 
 const qs = (s) => document.querySelector(s);
 
-// --- CONFIGURACIÓN Y CONSTANTES ---
+// --- CONFIGURACIÓN ---
 const CONFIG = {
     ZOOM: 0.5,
-    GHOST_ALPHA: 0.4,
     SEGMENT_COUNT: 6,
     SEGMENT_GAP: 8,
     ROTATION_SPEED: 0.18,
@@ -22,15 +20,15 @@ const screens = {
     game: qs("#gameScreen")
 };
 
-// Elementos UI
 const gameCanvas = qs("#gameCanvas");
 const ctx = gameCanvas.getContext("2d");
-const hpBars = qs("#hpBars");
-const cooldownPulse = qs("#cooldownPulse");
-const cooldownDash = qs("#cooldownDash");
-const touchPulse = qs("#touchPulse");
-const touchDash = qs("#touchDash");
-const touchStick = qs("#touchStick");
+const authForm = qs("#authForm");
+const usernameInput = qs("#usernameInput");
+const emailInput = qs("#emailInput");
+const passwordInput = qs("#passwordInput");
+const authMsg = qs("#authMsg");
+const welcomeUser = qs("#welcomeUser");
+const roomsList = qs("#roomsList");
 
 // Estado Global
 let token = localStorage.getItem("token") || "";
@@ -41,54 +39,201 @@ let mode = "login";
 const keys = { up: false, down: false, left: false, right: false, dash: false };
 let joystick = { active: false, x: 0, y: 0 };
 
-// Almacenamiento de estados visuales suavizados
 const playerVisuals = new Map();
+
+// --- LÓGICA DE NAVEGACIÓN ---
+function show(id) {
+    Object.entries(screens).forEach(([key, el]) => {
+        if (el) el.classList.toggle("active", key === id);
+    });
+}
 
 // --- SISTEMA DE COORDENADAS ---
 function toScreen(worldX, worldY) {
     const myPlayer = roomState?.players?.[socket.id];
     if (!myPlayer) return { x: 0, y: 0 };
-    
     return {
         x: (gameCanvas.width / 2) + (worldX - myPlayer.x) * CONFIG.ZOOM,
         y: (gameCanvas.height / 2) + (worldY - myPlayer.y) * CONFIG.ZOOM
     };
 }
 
-// --- RENDERIZADO PRINCIPAL ---
+// --- RENDERIZADO ---
 function drawGame() {
-    if (!roomState || !socket) return requestAnimationFrame(drawGame);
+    // Solo dibujar si estamos en la pantalla de juego
+    if (!screens.game.classList.contains("active") || !roomState || !socket) {
+        return requestAnimationFrame(drawGame);
+    }
 
     const w = gameCanvas.width;
     const h = gameCanvas.height;
-    const myPlayer = roomState.players[socket.id];
-
-    // Limpieza con ligero rastro para efecto de movimiento
     ctx.fillStyle = "#04060d";
     ctx.fillRect(0, 0, w, h);
 
     drawGrid(ctx, w, h);
-    drawMapLimits(ctx);
-    if (roomState.zone) drawDangerZone(ctx, roomState.zone);
-
+    
     const players = Object.values(roomState.players);
-
     players.forEach(p => {
         const screenPos = toScreen(p.x, p.y);
-        
-        // Culling: No dibujar si está muy lejos de la pantalla
         if (screenPos.x < -200 || screenPos.y < -200 || screenPos.x > w + 200 || screenPos.y > h + 200) return;
-
         updateAndDrawPlayer(ctx, p, screenPos, p.username === me?.username);
     });
 
-    updateUI(myPlayer);
+    updateUI(roomState.players[socket.id]);
     requestAnimationFrame(drawGame);
 }
 
-// --- SUB-FUNCIONES DE DIBUJO ---
 function drawGrid(ctx, w, h) {
     const offset = toScreen(0, 0);
+    const step = 100 * CONFIG.ZOOM;
+    ctx.strokeStyle = "rgba(109, 247, 255, 0.05)";
+    ctx.lineWidth = 1;
+    for (let x = offset.x % step; x < w; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let y = offset.y % step; y < h; y += step) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+}
+
+function updateAndDrawPlayer(ctx, p, pos, isMe) {
+    let st = playerVisuals.get(p.username);
+    if (!st) {
+        st = { angle: 0, tail: Array(CONFIG.SEGMENT_COUNT).fill({ x: pos.x, y: pos.y }), lastX: pos.x, lastY: pos.y };
+        playerVisuals.set(p.username, st);
+    }
+
+    const dx = pos.x - st.lastX;
+    const dy = pos.y - st.lastY;
+    const speed = Math.hypot(dx, dy);
+
+    if (speed > 0.1) {
+        const targetAngle = Math.atan2(dy, dx);
+        const diff = Math.atan2(Math.sin(targetAngle - st.angle), Math.cos(targetAngle - st.angle));
+        st.angle += diff * CONFIG.ROTATION_SPEED;
+    }
+
+    st.tail[0] = { x: pos.x, y: pos.y };
+    for (let i = 1; i < st.tail.length; i++) {
+        const seg = st.tail[i];
+        const prev = st.tail[i - 1];
+        const d = Math.hypot(prev.x - seg.x, prev.y - seg.y);
+        const limit = CONFIG.SEGMENT_GAP * CONFIG.ZOOM;
+        if (d > limit) {
+            const angle = Math.atan2(prev.y - seg.y, prev.x - seg.x);
+            st.tail[i] = { x: prev.x - Math.cos(angle) * limit, y: prev.y - Math.sin(angle) * limit };
+        }
+    }
+
+    ctx.save();
+    st.tail.slice().reverse().forEach((seg, i) => {
+        const revIdx = st.tail.length - 1 - i;
+        const sizeMult = (1 - revIdx / st.tail.length);
+        const radius = (18 - revIdx * 2) * CONFIG.ZOOM;
+        ctx.fillStyle = isMe ? `rgba(109, 247, 255, ${0.3 + sizeMult * 0.7})` : `rgba(178, 140, 255, ${0.3 + sizeMult * 0.7})`;
+        ctx.beginPath(); ctx.arc(seg.x, seg.y, Math.max(2, radius), 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.fillText(p.username, pos.x, pos.y - 35);
+    st.lastX = pos.x; st.lastY = pos.y;
+    ctx.restore();
+}
+
+function updateUI(myP) {
+    if (!myP) return;
+    qs("#gameTopRight").textContent = `Vivos: ${Object.values(roomState.players).filter(p => p.alive).length}`;
+    // Aquí puedes añadir la lógica de cooldowns de nuevo si la usas
+}
+
+// --- CONEXIÓN ---
+function onAuthed() {
+    show("lobby");
+    welcomeUser.textContent = me.username;
+    socket = io();
+
+    socket.on("connect", () => socket.emit("auth", { token }));
+    socket.on("rooms_list", (rooms) => {
+        roomsList.innerHTML = rooms.map(r => `
+            <li class="room-item">
+                <span>Sala ${r.id} (${r.count}/${r.max})</span>
+                <button class="btn small" onclick="joinRoom('${r.id}')">Unirse</button>
+            </li>
+        `).join('');
+    });
+    socket.on("joined_room", () => { show("game"); resizeCanvas(); });
+    socket.on("room_update", (state) => { roomState = state; });
+}
+
+window.joinRoom = (id) => socket.emit("join_room", { roomId: id });
+
+// --- AUTENTICACIÓN ---
+authForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const route = mode === "login" ? "/api/login" : "/api/register";
+    const body = { email: emailInput.value, password: passwordInput.value };
+    if (mode === "register") body.username = usernameInput.value;
+
+    try {
+        const res = await fetch(route, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.token) {
+            token = data.token;
+            localStorage.setItem("token", token);
+            me = data.user;
+            onAuthed();
+        } else {
+            authMsg.textContent = data.error || "Error de acceso";
+        }
+    } catch (err) {
+        authMsg.textContent = "Error de servidor";
+    }
+};
+
+qs("#tabLogin").onclick = () => { mode = "login"; usernameInput.classList.add("hidden"); qs("#tabLogin").classList.add("active"); qs("#tabRegister").classList.remove("active"); };
+qs("#tabRegister").onclick = () => { mode = "register"; usernameInput.classList.remove("hidden"); qs("#tabRegister").classList.add("active"); qs("#tabLogin").classList.remove("active"); };
+
+// --- INPUTS ---
+window.addEventListener("keydown", (e) => {
+    if (!screens.game.classList.contains("active")) return;
+    if (e.code === "KeyW") keys.up = true;
+    if (e.code === "KeyS") keys.down = true;
+    if (e.code === "KeyA") keys.left = true;
+    if (e.code === "KeyD") keys.right = true;
+    if (e.code === "ShiftLeft") keys.dash = true;
+    socket.emit("input", { ...keys });
+});
+
+window.addEventListener("keyup", (e) => {
+    if (e.code === "KeyW") keys.up = false;
+    if (e.code === "KeyS") keys.down = false;
+    if (e.code === "KeyA") keys.left = false;
+    if (e.code === "KeyD") keys.right = false;
+    if (e.code === "ShiftLeft") keys.dash = false;
+    socket.emit("input", { ...keys });
+});
+
+function resizeCanvas() {
+    gameCanvas.width = window.innerWidth;
+    gameCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+
+// Inicio
+if (token) {
+    fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => { if (d.username) { me = d; onAuthed(); } else show("auth"); })
+        .catch(() => show("auth"));
+} else {
+    show("auth");
+}
+
+requestAnimationFrame(drawGame);    const offset = toScreen(0, 0);
     const step = 100 * CONFIG.ZOOM;
     ctx.strokeStyle = "rgba(109, 247, 255, 0.05)";
     ctx.lineWidth = 1;
