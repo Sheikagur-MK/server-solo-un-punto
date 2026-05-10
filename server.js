@@ -2,8 +2,8 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const path = require('path');
 require('dotenv').config();
 
@@ -14,27 +14,73 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI).then(() => console.log("🌌 Database Nexus 2026 Online"));
+// --- CONFIGURACIÓN DE DB 2026 ---
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("🌌 GEO-STORM NEXUS: Base de datos vinculada"))
+  .catch(err => console.error("❌ FALLO DE NÚCLEO:", err));
 
-// Modelo de Usuario con Skins y Progreso
 const UserSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    points: { type: Number, default: 0 },
+    points: { type: Number, default: 500 },
     currentSkin: { type: String, default: 'sphere' },
     unlockedSkins: { type: [String], default: ['sphere'] }
 });
 const User = mongoose.model('User', UserSchema);
 
-// --- API DE AUTENTICACIÓN REAL ---
+// --- ENDPOINTS DE AUTENTICACIÓN ---
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
         const hashed = await bcrypt.hash(password, 10);
         const user = await User.create({ username, email, password: hashed });
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret');
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'GS2026');
+        res.json({ token, user: { username, points: 500, currentSkin: 'sphere' } });
+    } catch (e) { res.status(400).json({ error: "Datos duplicados o inválidos" }); }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user || !await bcrypt.compare(password, user.password)) return res.status(401).json({ error: "Credenciales erróneas" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'GS2026');
+    res.json({ token, user: { username: user.username, points: user.points, currentSkin: user.currentSkin, unlockedSkins: user.unlockedSkins } });
+});
+
+// --- LÓGICA DE SALAS BATTLE ROYALE ---
+const activePlayers = new Map();
+
+io.on('connection', (socket) => {
+    socket.on('join_queue', (data) => {
+        activePlayers.set(socket.id, {
+            id: socket.id,
+            username: data.username,
+            skin: data.currentSkin,
+            x: (Math.random() - 0.5) * 4000,
+            z: (Math.random() - 0.5) * 4000,
+            hp: 100,
+            points: data.points
+        });
+        socket.emit('match_confirmed', { mapSize: 5000 });
+    });
+
+    socket.on('player_update', (data) => {
+        const p = activePlayers.get(socket.id);
+        if (p) { p.x = data.x; p.z = data.z; p.rot = data.rot; }
+    });
+
+    socket.on('disconnect', () => activePlayers.delete(socket.id));
+});
+
+// Loop de red a 30Hz
+setInterval(() => {
+    if (activePlayers.size > 0) {
+        io.emit('world_state', Array.from(activePlayers.values()));
+    }
+}, 33);
+
+server.listen(process.env.PORT || 3000, () => console.log("🚀 Quantum Server Online"));        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret');
         res.json({ token, user: { username, points: 0, currentSkin: 'sphere' } });
     } catch (e) { res.status(400).json({ error: "El usuario o email ya existe" }); }
 });
