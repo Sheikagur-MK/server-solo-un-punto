@@ -1,40 +1,39 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pulse Arena</title>
-  <link rel="stylesheet" href="/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Solo un Punto - Evolution</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="app">
-    <section id="introScreen" class="screen active">
-      <canvas id="introCanvas"></canvas>
-      <div class="intro-overlay">
-        <h1>PULSE ARENA</h1>
-        <p>1 punto. 1 onda. 1 vencedor.</p>
-      </div>
-    </section>
-
-    <section id="authScreen" class="screen">
-      <div class="card auth-card">
-        <h2>Bienvenido</h2>
-        <p class="muted">Inicia sesion o create una cuenta para jugar online.</p>
-        <div class="tabs">
-          <button id="tabLogin" class="tab active">Inicia sesion</button>
-          <button id="tabRegister" class="tab">Registrate</button>
+    <div id="ui">
+        <div id="authScreen" class="screen active">
+            <div class="modal">
+                <h1>SOLO UN PUNTO</h1>
+                <input id="email" type="email" placeholder="Correo">
+                <input id="pass" type="password" placeholder="Contraseña">
+                <input id="user" type="text" placeholder="Usuario (solo registro)" class="hidden">
+                <div class="actions">
+                    <button id="btnLogin" class="primary">Entrar</button>
+                    <button id="btnToggleReg">Crear cuenta</button>
+                </div>
+            </div>
         </div>
-        <form id="authForm">
-          <input id="usernameInput" placeholder="Usuario (solo registro)" class="hidden">
-          <input id="emailInput" type="email" placeholder="Correo">
-          <input id="passwordInput" type="password" placeholder="Contrasena">
-          <button type="submit" class="btn">Continuar</button>
-        </form>
-        <p id="authMsg" class="muted small"></p>
-      </div>
-    </section>
 
-    <section id="lobbyScreen" class="screen">
+        <div id="gameScreen" class="screen">
+            <canvas id="stage"></canvas>
+            <div class="hud">
+                <div id="status">Buscando rivales...</div>
+                <div id="hp">Vida: 3</div>
+            </div>
+            <div id="joystick"><div id="stick"></div></div>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>    <section id="lobbyScreen" class="screen">
       <div class="lobby-shell">
         <aside class="panel profile">
           <div class="avatar-wrap"><canvas id="avatarCanvas"></canvas></div>
