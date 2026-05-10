@@ -2,168 +2,162 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NEON STRIKE | Global Arena</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --neon: #0ff; --danger: #f05; --bg: #050505; --panel: rgba(0, 255, 255, 0.05); }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        :root { --neon: #0ff; --bg: #050505; }
+        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
         
-        /* Fondo Animado */
-        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; filter: blur(2px); }
+        .screen { position: absolute; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .active { display: flex; }
 
-        /* Estructura de Pantallas */
-        .screen { position: absolute; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; transition: 0.5s; text-align: center; }
-        .active { display: flex; animation: fadeIn 0.8s ease-out; }
+        /* Canvas de Juego */
+        #game-canvas { display: none; background: #000; width: 100vw; height: 100vh; }
+        
+        /* Controles Móvil (Joystick) */
+        #joystick-container { 
+            position: fixed; bottom: 50px; left: 50px; width: 120px; height: 120px; 
+            background: rgba(255,255,255,0.1); border-radius: 50%; display: none; touch-action: none;
+        }
+        #joystick-handle { 
+            position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; 
+            background: var(--neon); border-radius: 50%; box-shadow: 0 0 15px var(--neon);
+        }
 
-        .logo { font-size: 80px; font-weight: 900; letter-spacing: 10px; color: var(--neon); text-shadow: 0 0 20px var(--neon); margin-bottom: 50px; }
-
-        /* Botones Estilo Neon */
-        .btn-menu { width: 300px; padding: 15px; margin: 10px; background: transparent; border: 1px solid var(--neon); color: var(--neon); font-size: 18px; cursor: pointer; position: relative; overflow: hidden; transition: 0.3s; text-transform: uppercase; }
-        .btn-menu:hover { background: var(--neon); color: black; box-shadow: 0 0 30px var(--neon); transform: skewX(-10deg); }
-
-        /* UI de Perfil */
-        .profile-card { position: absolute; top: 20px; left: 20px; display: flex; align-items: center; background: var(--panel); padding: 10px 20px; border-left: 4px solid var(--neon); z-index: 100; }
-        .avatar { width: 50px; height: 50px; background: #222; border: 2px solid var(--neon); border-radius: 50%; margin-right: 15px; }
-
-        /* Mercado (Shop) */
-        .shop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px; }
-        .shop-item { background: var(--panel); border: 1px solid #333; padding: 20px; text-align: center; transition: 0.3s; }
-        .shop-item:hover { border-color: var(--neon); transform: translateY(-5px); }
-
-        /* Listas y Contenedores */
-        .room-list, #player-list { width: 80%; max-width: 600px; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.5); border: 1px solid #333; padding: 10px; margin-bottom: 20px; }
-        .room-entry { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #222; align-items: center; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: scale(1.1); } to { opacity: 1; transform: scale(1); } }
+        .btn-menu { padding: 15px 40px; background: transparent; border: 1px solid var(--neon); color: var(--neon); cursor: pointer; font-size: 20px; }
+        .logo { font-size: 50px; color: var(--neon); text-shadow: 0 0 10px var(--neon); margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <canvas id="bg-canvas"></canvas>
-
-    <div id="top-ui" class="profile-card">
-        <div class="avatar"></div>
-        <div>
-            <div id="user-name" style="font-weight: bold;">USER_0926</div>
-            <div style="color: var(--neon); font-size: 12px;">NIVEL 42 | <i class="fa-solid fa-coins"></i> <span id="user-coins">1,500</span></div>
-        </div>
-    </div>
-
     <div id="menu-screen" class="screen active">
         <div class="logo">NEON STRIKE</div>
-        <button class="btn-menu" onclick="startLobby()"><i class="fa-solid fa-play"></i> Iniciar Partida</button>
-        <button class="btn-menu" onclick="changeScreen('shop-screen')"><i class="fa-solid fa-cart-shopping"></i> Mercado</button>
-        <button class="btn-menu" onclick="changeScreen('rooms-screen')"><i class="fa-solid fa-door-open"></i> Salas Privadas</button>
-        <button class="btn-menu" onclick="changeScreen('settings-screen')"><i class="fa-solid fa-gear"></i> Ajustes</button>
+        <button class="btn-menu" onclick="startGame()">ENTRAR A LA ARENA</button>
     </div>
 
-    <div id="lobby-screen" class="screen">
-        <h2 style="color: var(--neon)">LOBBY DE ESPERA</h2>
-        <div id="player-list">
-            <p>Buscando conexión con la arena...</p>
-        </div>
-        <div style="margin-bottom: 20px;">
-            <i class="fa-solid fa-circle-notch fa-spin"></i> Esperando más jugadores...
-        </div>
-        <button class="btn-menu" onclick="changeScreen('menu-screen')">Abandonar</button>
-    </div>
+    <canvas id="game-canvas"></canvas>
 
-    <div id="rooms-screen" class="screen">
-        <h2>SALAS DISPONIBLES</h2>
-        <div class="room-list">
-            <div class="room-entry"><span>SERVER_CDMX_01 (4/8)</span> <button class="btn-menu" style="width: 100px; padding: 5px;">UNIRSE</button></div>
-            <div class="room-entry"><span>PRO_SCRIMS_LA_PAZ (1/2)</span> <button class="btn-menu" style="width: 100px; padding: 5px;">UNIRSE</button></div>
-        </div>
-        <button class="btn-menu" onclick="changeScreen('menu-screen')">Volver</button>
-    </div>
-
-    <div id="shop-screen" class="screen">
-        <h2>MERCADO DE SKINS</h2>
-        <div class="shop-grid">
-            <div class="shop-item"><h3>Cian Pulse</h3><p>500 CR</p><button class="btn-menu" style="width: 120px;" onclick="buyItem('Cian Pulse')">COMPRAR</button></div>
-            <div class="shop-item"><h3>Emerald Blade</h3><p>1200 CR</p><button class="btn-menu" style="width: 120px;" onclick="buyItem('Emerald Blade')">COMPRAR</button></div>
-            <div class="shop-item"><h3>Shadow Step</h3><p>2000 CR</p><button class="btn-menu" style="width: 120px;" onclick="buyItem('Shadow Step')">COMPRAR</button></div>
-        </div>
-        <button class="btn-menu" onclick="changeScreen('menu-screen')">Volver</button>
+    <div id="joystick-container">
+        <div id="joystick-handle"></div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-
     <script>
-        // 1. Conexión al Servidor
         const socket = io();
-
-        // 2. Sistema de Navegación
-        function changeScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-        }
-
-        // 3. Lógica de Red (Socket.io)
-        function startLobby() {
-            changeScreen('lobby-screen');
-            socket.emit('joinRoom', 'global-arena');
-        }
-
-        socket.on('roomUpdate', (players) => {
-            const list = document.getElementById('player-list');
-            list.innerHTML = `<h3>Jugadores en Línea: ${players.length}</h3>`;
-            players.forEach(id => {
-                list.innerHTML += `<div class="room-entry">ID: ${id.substring(0,6)}... <span style="color:var(--neon)">LISTO</span></div>`;
-            });
-        });
-
-        function buyItem(itemName) {
-            socket.emit('buyItem', { item: itemName });
-        }
-
-        socket.on('purchaseSuccess', (data) => {
-            alert('¡Compraste: ' + data.item + '!');
-        });
-
-        // 4. Fondo de partículas interactivo
-        const canvas = document.getElementById('bg-canvas');
+        const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const joystick = document.getElementById('joystick-container');
+        const handle = document.getElementById('joystick-handle');
 
-        let particles = [];
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2;
-                this.speedX = (Math.random() - 0.5) * 1;
-                this.speedY = (Math.random() - 0.5) * 1;
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.y > canvas.height) this.y = 0;
-            }
-            draw() {
-                ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
+        let players = {};
+        let myId = null;
+        let keys = {};
+        let moveSpeed = 4;
 
-        for(let i=0; i<100; i++) particles.push(new Particle());
-
-        function animate() {
-            ctx.clearRect(0,0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
+        // Ajustar canvas
+        function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function startGame() {
+            document.getElementById('menu-screen').classList.remove('active');
+            canvas.style.display = 'block';
+            if ('ontouchstart' in window) joystick.style.display = 'block'; // Solo en celulares
+            socket.emit('joinRoom');
+        }
+
+        // --- LÓGICA DE RED ---
+        socket.on('init', (serverPlayers) => {
+            players = serverPlayers;
+            myId = socket.id;
+            requestAnimationFrame(gameLoop);
         });
+
+        socket.on('newPlayer', (player) => { players[player.id] = player; });
+        socket.on('playerMoved', (player) => { players[player.id] = player; });
+        socket.on('playerDisconnected', (id) => { delete players[id]; });
+
+        // --- CONTROLES PC ---
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        // --- CONTROLES MÓVIL (JOYSTICK) ---
+        let drag = false;
+        joystick.addEventListener('touchstart', () => drag = true);
+        window.addEventListener('touchend', () => {
+            drag = false;
+            handle.style.top = '35px';
+            handle.style.left = '35px';
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!drag) return;
+            const rect = joystick.getBoundingClientRect();
+            const touch = e.touches[0];
+            let x = touch.clientX - rect.left - 60;
+            let y = touch.clientY - rect.top - 60;
+            
+            const distance = Math.min(Math.sqrt(x*x + y*y), 50);
+            const angle = Math.atan2(y, x);
+            
+            x = Math.cos(angle) * distance;
+            y = Math.sin(angle) * distance;
+
+            handle.style.left = (x + 35) + 'px';
+            handle.style.top = (y + 35) + 'px';
+
+            // Mover jugador
+            if (players[myId]) {
+                players[myId].x += (x / 50) * moveSpeed;
+                players[myId].y += (y / 50) * moveSpeed;
+                socket.emit('move', { x: players[myId].x, y: players[myId].y });
+            }
+        });
+
+        function gameLoop() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Dibujar Grid de fondo
+            ctx.strokeStyle = '#111';
+            for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
+            for(let i=0; i<canvas.height; i+=50) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(canvas.width,i); ctx.stroke(); }
+
+            // Movimiento PC
+            if (players[myId]) {
+                let moved = false;
+                if (keys['KeyW'] || keys['ArrowUp']) { players[myId].y -= moveSpeed; moved = true; }
+                if (keys['KeyS'] || keys['ArrowDown']) { players[myId].y += moveSpeed; moved = true; }
+                if (keys['KeyA'] || keys['ArrowLeft']) { players[myId].x -= moveSpeed; moved = true; }
+                if (keys['KeyD'] || keys['ArrowRight']) { players[myId].x += moveSpeed; moved = true; }
+                
+                if (moved) socket.emit('move', { x: players[myId].x, y: players[myId].y });
+            }
+
+            // Dibujar Jugadores
+            for (let id in players) {
+                let p = players[id];
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = p.color;
+                
+                // Dibujar forma de nave/punto
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Nombre del jugador
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "white";
+                ctx.fillText(id === myId ? "TÚ" : "ENEMIGO", p.x - 10, p.y - 25);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
     </script>
 </body>
 </html>
