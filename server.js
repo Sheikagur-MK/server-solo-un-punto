@@ -249,8 +249,11 @@ function updateRoom(room, dt) {
     const mag = Math.hypot(dx, dy) || 1;
     const ndx = dx / mag;
     const ndy = dy / mag;
-    p.vx = ndx * speed;
-    p.vy = ndy * speed;
+    const targetVx = ndx * speed;
+    const targetVy = ndy * speed;
+    // Inercia ligera para que la fisica no se sienta robótica.
+    p.vx += (targetVx - p.vx) * 0.28;
+    p.vy += (targetVy - p.vy) * 0.28;
 
     if (dx !== 0 || dy !== 0) {
       p.lastMove.x = ndx;
@@ -398,5 +401,4 @@ app.get("*", (req, res) => {
 });
 
 server.listen(PORT, () => console.log(`SERVIDOR 2026 CORRIENDO EN PUERTO ${PORT}`));
-
 
