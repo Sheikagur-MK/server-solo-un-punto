@@ -37,8 +37,10 @@ let roomState = null;
 
 const keys = { up: false, down: false, left: false, right: false, dash: false, pulse: false };
 const viewTrail = new Map();
-const localPulseFx = [];
 const joystick = { active: false, id: null, x: 0, y: 0, radius: 48 };
+const SKILL_COOLDOWN_MS = 5000;
+let lastDashAt = 0;
+let lastPulseAt = 0;
 
 function show(screenName) {
   Object.values(screens).forEach((s) => s.classList.remove("active"));
@@ -162,11 +164,8 @@ window.addEventListener("keydown", (e) => {
   if (k === "s" || k === "arrowdown") keys.down = true;
   if (k === "a" || k === "arrowleft") keys.left = true;
   if (k === "d" || k === "arrowright") keys.right = true;
-  if (e.code === "ShiftLeft" || e.code === "ShiftRight") keys.dash = true;
-  if (e.code === "Space") {
-    keys.pulse = true;
-    localPulseFx.push({ t: performance.now(), username: me?.username || "" });
-  }
+  if (e.code === "ShiftLeft" || e.code === "ShiftRight") tryDash();
+  if (e.code === "Space") tryPulse();
 });
 window.addEventListener("keyup", (e) => {
   const k = e.key.toLowerCase();
@@ -178,21 +177,32 @@ window.addEventListener("keyup", (e) => {
 });
 touchPulse.addEventListener("touchstart", (e) => {
   e.preventDefault();
-  keys.pulse = true;
-  localPulseFx.push({ t: performance.now(), username: me?.username || "" });
+  tryPulse();
 }, { passive: false });
 touchPulse.addEventListener("click", (e) => {
   e.preventDefault();
-  keys.pulse = true;
-  localPulseFx.push({ t: performance.now(), username: me?.username || "" });
+  tryPulse();
 });
-touchDash.addEventListener("touchstart", (e) => { e.preventDefault(); keys.dash = true; }, { passive: false });
-touchDash.addEventListener("touchend", (e) => { e.preventDefault(); keys.dash = false; }, { passive: false });
+touchDash.addEventListener("touchstart", (e) => { e.preventDefault(); tryDash(); }, { passive: false });
+touchDash.addEventListener("touchend", (e) => { e.preventDefault(); }, { passive: false });
 touchDash.addEventListener("click", (e) => {
   e.preventDefault();
-  keys.dash = true;
-  setTimeout(() => { keys.dash = false; }, 70);
+  tryDash();
 });
+
+function tryDash() {
+  const now = Date.now();
+  if (now - lastDashAt < SKILL_COOLDOWN_MS) return;
+  lastDashAt = now;
+  keys.dash = true;
+}
+
+function tryPulse() {
+  const now = Date.now();
+  if (now - lastPulseAt < SKILL_COOLDOWN_MS) return;
+  lastPulseAt = now;
+  keys.pulse = true;
+}
 
 function joystickApply(nx, ny) {
   const dead = 0.22;
@@ -235,6 +245,43 @@ if (touchMove && touchStick) {
   };
   touchMove.addEventListener("pointerup", resetStick);
   touchMove.addEventListener("pointercancel", resetStick);
+  // Fallback para navegadores moviles que no manejan pointer events correctamente.
+  touchMove.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    const rect = touchMove.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const dx = t.clientX - rect.left - cx;
+    const dy = t.clientY - rect.top - cy;
+    const mag = Math.hypot(dx, dy) || 1;
+    const clampedX = mag > joystick.radius ? (dx / mag) * joystick.radius : dx;
+    const clampedY = mag > joystick.radius ? (dy / mag) * joystick.radius : dy;
+    touchStick.style.left = `${cx - touchStick.offsetWidth / 2 + clampedX}px`;
+    touchStick.style.top = `${cy - touchStick.offsetHeight / 2 + clampedY}px`;
+    joystickApply(clampedX / joystick.radius, clampedY / joystick.radius);
+  }, { passive: true });
+  touchMove.addEventListener("touchmove", (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    const rect = touchMove.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const dx = t.clientX - rect.left - cx;
+    const dy = t.clientY - rect.top - cy;
+    const mag = Math.hypot(dx, dy) || 1;
+    const clampedX = mag > joystick.radius ? (dx / mag) * joystick.radius : dx;
+    const clampedY = mag > joystick.radius ? (dy / mag) * joystick.radius : dy;
+    touchStick.style.left = `${cx - touchStick.offsetWidth / 2 + clampedX}px`;
+    touchStick.style.top = `${cy - touchStick.offsetHeight / 2 + clampedY}px`;
+    joystickApply(clampedX / joystick.radius, clampedY / joystick.radius);
+  }, { passive: true });
+  touchMove.addEventListener("touchend", () => {
+    const rect = touchMove.getBoundingClientRect();
+    touchStick.style.left = `${rect.width / 2 - touchStick.offsetWidth / 2}px`;
+    touchStick.style.top = `${rect.height / 2 - touchStick.offsetHeight / 2}px`;
+    joystickApply(0, 0);
+  }, { passive: true });
 }
 
 function sendInputLoop() {
@@ -357,10 +404,6 @@ function drawGame() {
       ctx.beginPath();
       ctx.arc(x, y, 42, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.strokeStyle = "rgba(120,237,255,.35)";
-      ctx.beginPath();
-      ctx.arc(x, y, 62, 0, Math.PI * 2);
-      ctx.stroke();
     }
     ctx.fillStyle = "#dce6ff";
     ctx.font = "12px Inter";
@@ -368,23 +411,6 @@ function drawGame() {
   }
 
   const alive = players.filter((p) => p.alive).length;
-  for (let i = localPulseFx.length - 1; i >= 0; i -= 1) {
-    const fx = localPulseFx[i];
-    const age = (performance.now() - fx.t) / 400;
-    if (age >= 1) {
-      localPulseFx.splice(i, 1);
-      continue;
-    }
-    const owner = players.find((p) => p.username === fx.username);
-    if (!owner) continue;
-    const x = owner.x - view.left;
-    const y = owner.y - view.top;
-    ctx.strokeStyle = `rgba(145,241,255,${1 - age})`;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(x, y, 18 + age * 130, 0, Math.PI * 2);
-    ctx.stroke();
-  }
   gameTopLeft.textContent = `${roomState.summary?.id || ""} | ${roomState.summary?.status || ""}`;
   gameTopRight.textContent = `Vivos: ${alive}`;
   hpBars.innerHTML = "";
