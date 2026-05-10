@@ -41,6 +41,239 @@ let mapSize = 5000;
 let roomState = null;
 
 const keys = { up: false, down: false, left: false, right: false, dash: false, pulse: false };
+const joystick = { active: false, id: null, x: 0, y: 0, radius: 48 };
+const SKILL_COOLDOWN_MS = 5000;
+const CAMERA_ZOOM = 0.5;
+const GROUND_CELL = 88;
+
+let lastDashAt = 0;
+let lastPulseAt = 0;
+
+// --- ESTADO PARA MOVIMIENTO FLUIDO ---
+const renderedPlayers = new Map();
+const organicState = new Map(); 
+const camState = { x: 2500, y: 2500 };
+const shakeState = { power: 0, x: 0, y: 0 };
+let analogX = 0;
+let analogY = 0;
+
+// --- FUNCIONES DE APOYO ---
+function addShake(amount) { shakeState.power = Math.min(18, shakeState.power + amount); }
+
+function show(screenName) {
+  Object.values(screens).forEach((s) => s.classList.remove("active"));
+  if (screens[screenName]) screens[screenName].classList.add("active");
+}
+
+function setMode(next) {
+  mode = next;
+  tabLogin.classList.toggle("active", next === "login");
+  tabRegister.classList.toggle("active", next === "register");
+  usernameInput.classList.toggle("hidden", next !== "register");
+}
+
+tabLogin.onclick = () => setMode("login");
+tabRegister.onclick = () => setMode("register");
+
+// --- API Y AUTENTICACIÓN (ORIGINAL) ---
+async function api(path, method = "GET", body) {
+  const res = await fetch(path, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Error");
+  return data;
+}
+
+authForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  authMsg.textContent = "Procesando...";
+  try {
+    const payload = { email: emailInput.value.trim(), password: passwordInput.value.trim() };
+    const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login";
+    if (mode === "register") payload.username = usernameInput.value.trim();
+    const result = await api(endpoint, "POST", payload);
+    token = result.token;
+    me = result.user;
+    localStorage.setItem("token", token);
+    onAuthed();
+  } catch (err) {
+    authMsg.textContent = err.message;
+  }
+});
+
+// --- RENDERIZADO DEL JUEGO (MEJORADO) ---
+function drawGame() {
+  const ctx = gameCanvas.getContext("2d");
+  const { w, h } = resizeCanvas(gameCanvas);
+  ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  ctx.clearRect(0, 0, w, h);
+
+  if (!roomState || !me) { requestAnimationFrame(drawGame); return; }
+
+  const players = Array.isArray(roomState.players) ? roomState.players : Object.values(roomState.players || {});
+  const mePlayer = players.find((p) => p.username === me.username);
+
+  // Interpolación de red
+  for (const p of players) {
+    const prev = renderedPlayers.get(p.username) || { x: p.x, y: p.y, lx: p.x, ly: p.y };
+    prev.lx = prev.x; prev.ly = prev.y;
+    prev.x += (p.x - prev.x) * 0.35;
+    prev.y += (p.y - prev.y) * 0.35;
+    prev.alive = p.alive; prev.pulsing = p.pulsing; prev.username = p.username; prev.hpBars = p.hpBars;
+    renderedPlayers.set(p.username, prev);
+  }
+
+  // Cámara Suave
+  const meRender = mePlayer ? renderedPlayers.get(me.username) : null;
+  const targetCamX = mePlayer ? meRender.x : mapSize / 2;
+  const targetCamY = mePlayer ? meRender.y : mapSize / 2;
+  camState.x += (targetCamX - camState.x) * 0.1;
+  camState.y += (targetCamY - camState.y) * 0.1;
+
+  const viewW = w / CAMERA_ZOOM, viewH = h / CAMERA_ZOOM;
+  const view = { left: camState.x - viewW / 2, top: camState.y - viewH / 2 };
+  const toScreen = (wx, wy) => ({ x: (wx - view.left) * CAMERA_ZOOM, y: (wy - view.top) * CAMERA_ZOOM });
+
+  shakeState.power *= 0.9;
+  ctx.save();
+  ctx.translate((Math.random()-0.5)*shakeState.power, (Math.random()-0.5)*shakeState.power);
+
+  // Fondo (Grid)
+  ctx.strokeStyle = "rgba(44, 55, 96, 0.4)";
+  ctx.lineWidth = 1;
+  for (let x = Math.floor(view.left / GROUND_CELL) * GROUND_CELL; x < view.left + viewW; x += GROUND_CELL) {
+    const sx = (x - view.left) * CAMERA_ZOOM;
+    ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
+  }
+
+  // Jugadores Tipo Gusano
+  for (const p of renderedPlayers.values()) {
+    const pos = toScreen(p.x, p.y);
+    let st = organicState.get(p.username);
+    if (!st) {
+        st = { tail: Array(8).fill({x: pos.x, y: pos.y}) };
+        organicState.set(p.username, st);
+    }
+
+    st.tail[0] = { x: pos.x, y: pos.y };
+    for (let i = 1; i < st.tail.length; i++) {
+        const seg = st.tail[i], prev = st.tail[i-1];
+        const dx = prev.x - seg.x, dy = prev.y - seg.y;
+        const dist = Math.hypot(dx, dy);
+        const limit = 8 * CAMERA_ZOOM;
+        if (dist > limit) {
+            const ang = Math.atan2(dy, dx);
+            seg.x = prev.x - Math.cos(ang) * limit;
+            seg.y = prev.y - Math.sin(ang) * limit;
+        }
+    }
+
+    const isMe = p.username === me.username;
+    for (let i = st.tail.length - 1; i >= 0; i--) {
+        const s = st.tail[i];
+        ctx.fillStyle = isMe ? `rgba(109, 247, 255, ${0.4 + (1-i/8)*0.6})` : `rgba(178, 140, 255, ${0.4 + (1-i/8)*0.6})`;
+        ctx.beginPath(); ctx.arc(s.x, s.y, (16 - i)*CAMERA_ZOOM, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  ctx.restore();
+  requestAnimationFrame(drawGame);
+}
+
+// --- CONEXIÓN Y EVENTOS (ORIGINALES) ---
+function onAuthed() {
+  show("lobby");
+  welcomeUser.textContent = me.username;
+  coinsLabel.textContent = `${me.coins} coins`;
+  if (!socket) connectSocket();
+}
+
+function connectSocket() {
+  socket = io({ auth: { token } });
+  socket.on("rooms_overview", (rooms) => {
+    roomsList.innerHTML = "";
+    rooms.forEach(r => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span>Sala ${r.id} (${r.players}/100)</span>`;
+      const btn = document.createElement("button");
+      btn.textContent = "Unirse";
+      btn.onclick = () => socket.emit("join_online", { roomId: r.id });
+      li.appendChild(btn);
+      roomsList.appendChild(li);
+    });
+  });
+  socket.on("joined_room", (payload) => {
+    currentRoomId = payload.roomId;
+    show("game");
+  });
+  socket.on("room_state", (state) => { roomState = state; });
+}
+
+function sendInputLoop() {
+  if (socket?.connected && currentRoomId) {
+    const mx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    const my = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+    socket.emit("input", { ...keys, moveX: analogX || mx, moveY: analogY || my });
+    keys.pulse = false; keys.dash = false;
+  }
+  setTimeout(sendInputLoop, 33);
+}
+
+function resizeCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.clientWidth * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+  return { w: canvas.clientWidth, h: canvas.clientHeight };
+}
+
+async function bootstrap() {
+  setMode("login");
+  drawGame();
+  sendInputLoop();
+  if (token) {
+    try {
+      me = await api("/api/auth/me");
+      onAuthed();
+    } catch {
+      localStorage.removeItem("token");
+      show("auth");
+    }
+  } else {
+    show("auth");
+  }
+}
+
+// Eventos de teclado (Mantenidos)
+window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if(k === 'w' || k === 'arrowup') keys.up = true;
+    if(k === 's' || k === 'arrowdown') keys.down = true;
+    if(k === 'a' || k === 'arrowleft') keys.left = true;
+    if(k === 'd' || k === 'arrowright') keys.right = true;
+});
+window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    if(k === 'w' || k === 'arrowup') keys.up = false;
+    if(k === 's' || k === 'arrowdown') keys.down = false;
+    if(k === 'a' || k === 'arrowleft') keys.left = false;
+    if(k === 'd' || k === 'arrowright') keys.right = false;
+});
+
+qs("#btnOnline").onclick = () => socket.emit("join_online");
+
+bootstrap();let me = null;
+let socket = null;
+let currentRoomId = null;
+let mapSize = 5000;
+let roomState = null;
+
+const keys = { up: false, down: false, left: false, right: false, dash: false, pulse: false };
 const viewTrail = new Map();
 const joystick = { active: false, id: null, x: 0, y: 0, radius: 48 };
 const SKILL_COOLDOWN_MS = 5000;
