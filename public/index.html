@@ -3,38 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GEO-STORM BATTLE ROYALE 2026</title>
+    <title>GEO-STORM | Battle Royale 2026</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Rajdhani:wght@300;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="loading-overlay">Cargando Motores de Renderizado...</div>
-
-    <section id="auth-screen" class="active">
-        <div class="video-bg"></div>
-        <div class="auth-container">
-            <h1 class="glitch" data-text="GEO-STORM">GEO-STORM</h1>
-            <div id="auth-box">
-                <input id="auth-email" type="email" placeholder="CORREO ELECTRÓNICO">
-                <input id="auth-pass" type="password" placeholder="CONTRASEÑA">
-                <input id="auth-user" type="text" placeholder="NOMBRE DE PILOTO" class="hidden">
-                <div class="auth-buttons">
-                    <button id="btn-main-action">ENTRAR AL NEXO</button>
-                    <button id="btn-toggle-auth" class="secondary">REGISTRAR NUEVA CUENTA</button>
-                </div>
-                <p id="auth-error"></p>
+    <section id="screen-auth" class="screen active">
+        <div class="auth-card">
+            <h1 class="glitch-text">GEO-STORM</h1>
+            <div id="auth-inputs">
+                <input type="email" id="inp-email" placeholder="CÓDIGO DE ACCESO (EMAIL)">
+                <input type="text" id="inp-user" placeholder="ID DE PILOTO" class="hidden">
+                <input type="password" id="inp-pass" placeholder="LLAVE DE ENCRIPTACIÓN">
+                <button id="btn-auth-action" class="btn-primary">VINCULAR NEURONAS</button>
+                <button id="btn-auth-toggle" class="btn-link">¿NUEVO PILOTO? REGISTRAR</button>
             </div>
+            <p id="auth-error"></p>
         </div>
     </section>
 
-    <section id="lobby-screen">
+    <section id="screen-lobby" class="screen">
         <div class="lobby-ui">
-            <div class="user-stats">
-                <span id="player-name">PILOTO</span>
-                <span id="player-points">0 PTS</span>
+            <div class="header-status">
+                <div id="display-user">PILOTO_NAME</div>
+                <div id="display-points">⚡ 0 PTS</div>
             </div>
-            <div class="main-menu">
-                <button onclick="startGame()" class="btn-mega">INICIAR BATTLE ROYALE (100 JUGADORES)</button>
+            <div class="side-menu">
+                <button onclick="enterMatch()" class="btn-mega">INICIAR OPERACIÓN BR</button>
+                <button onclick="openStore()">MERCADO DE SKINS</button>
+                <button onclick="openSettings()">CONTROLES Y SENSIBILIDAD</button>
+            </div>
+        </div>
+        <div id="character-preview"></div> </section>
+
+    <section id="screen-game" class="screen">
+        <canvas id="game-canvas"></canvas>
+        <div class="game-hud">
+            <div class="vitals">
+                <div class="hp-label">SINCRONIZACIÓN</div>
+                <div class="hp-bar"><div id="hp-fill"></div></div>
+            </div>
+            <div id="match-stats">ENEMIGOS: 100 | SECTOR: ALPHA</div>
+        </div>
+    </section>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>                <button onclick="startGame()" class="btn-mega">INICIAR BATTLE ROYALE (100 JUGADORES)</button>
                 <div class="grid-menu">
                     <button onclick="openStore()">TIENDA DE SKINS</button>
                     <button onclick="openOptions()">CONFIGURACIÓN</button>
