@@ -1,40 +1,89 @@
 const socket = io();
 let me = null;
-let scene, camera, renderer, playerMesh;
-let otherPlayers = new Map();
 
-// --- LÓGICA DE INTERFAZ ---
-const btnMain = document.getElementById('btn-main-action');
-const btnToggle = document.getElementById('btn-toggle-auth');
+// --- GESTOR DE INTERFAZ ---
+const btnAction = document.getElementById('btn-auth-action');
+const btnToggle = document.getElementById('btn-auth-toggle');
 
 btnToggle.onclick = () => {
-    const isLogin = btnMain.innerText === 'ENTRAR AL NEXO';
-    btnMain.innerText = isLogin ? 'CREAR PILOTO' : 'ENTRAR AL NEXO';
-    btnToggle.innerText = isLogin ? 'YA TENGO CUENTA' : 'REGISTRAR NUEVA CUENTA';
-    document.getElementById('auth-user').classList.toggle('hidden');
+    const isLogin = btnAction.innerText === 'VINCULAR NEURONAS';
+    btnAction.innerText = isLogin ? 'CREAR PILOTO' : 'VINCULAR NEURONAS';
+    btnToggle.innerText = isLogin ? 'VOLVER A LOGIN' : '¿NUEVO PILOTO? REGISTRAR';
+    document.getElementById('inp-user').classList.toggle('hidden');
 };
 
-btnMain.onclick = async () => {
-    const isReg = btnMain.innerText === 'CREAR PILOTO';
-    const path = isReg ? '/api/auth/register' : '/api/auth/login';
+btnAction.onclick = async () => {
+    const isReg = btnAction.innerText === 'CREAR PILOTO';
+    const endpoint = isReg ? '/api/auth/register' : '/api/auth/login';
     const payload = {
-        email: document.getElementById('auth-email').value,
-        password: document.getElementById('auth-pass').value,
-        username: document.getElementById('auth-user').value
+        email: document.getElementById('inp-email').value,
+        password: document.getElementById('inp-pass').value,
+        username: document.getElementById('inp-user').value
     };
 
-    const res = await fetch(path, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-    });
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.token) {
+            me = data.user;
+            localStorage.setItem('gs_token', data.token);
+            initLobby();
+        } else {
+            document.getElementById('auth-error').innerText = data.error;
+        }
+    } catch (e) { console.error("Fallo de red"); }
+};
 
-    const data = await res.json();
-    if (data.token) {
-        me = data.user;
-        localStorage.setItem('token', data.token);
-        enterLobby();
-    } else {
+// --- MOTOR GRÁFICO 3D (Lobby) ---
+let scene, camera, renderer, charModel;
+
+function initLobby() {
+    document.getElementById('screen-auth').classList.remove('active');
+    document.getElementById('screen-lobby').classList.add('active');
+    document.getElementById('display-user').innerText = me.username;
+    document.getElementById('display-points').innerText = `⚡ ${me.points} PTS`;
+
+    const container = document.getElementById('character-preview');
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
+
+    // Habilidad por Skin (Ejemplo: Hexágono - Escudo de Energía)
+    const geo = new THREE.CylinderGeometry(1.5, 1.5, 0.5, 6);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x00f3ff, wireframe: true });
+    charModel = new THREE.Mesh(geo, mat);
+    scene.add(charModel);
+    scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+    camera.position.z = 5;
+    animateLobby();
+}
+
+function animateLobby() {
+    requestAnimationFrame(animateLobby);
+    if (charModel) {
+        charModel.rotation.y += 0.01;
+        charModel.rotation.z += 0.005;
+    }
+    renderer.render(scene, camera);
+}
+
+// --- SISTEMA DE COMBATE BR ---
+function enterMatch() {
+    document.getElementById('screen-lobby').classList.remove('active');
+    document.getElementById('screen-game').classList.add('active');
+    socket.emit('join_queue', me);
+}
+
+socket.on('world_state', (players) => {
+    // Aquí se renderizan los otros 99 jugadores en el mapa 3D
+});    } else {
         document.getElementById('auth-error').innerText = data.error;
     }
 };
