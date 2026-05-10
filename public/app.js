@@ -1,40 +1,115 @@
 const socket = io();
-const canvas = document.getElementById("stage");
-const ctx = canvas.getContext("2d");
-
 let me = null;
-let roomState = { players: [] };
-let organicTrail = new Map(); // Para el efecto elástico
+let scene, camera, renderer, playerMesh;
+let otherPlayers = new Map();
 
-// --- AUTH LOGIC ---
-document.getElementById("btnLogin").onclick = async () => {
-    const isReg = !document.getElementById("user").classList.contains("hidden");
-    const endpoint = isReg ? "/api/auth/register" : "/api/auth/login";
+// --- LÓGICA DE INTERFAZ ---
+const btnMain = document.getElementById('btn-main-action');
+const btnToggle = document.getElementById('btn-toggle-auth');
+
+btnToggle.onclick = () => {
+    const isLogin = btnMain.innerText === 'ENTRAR AL NEXO';
+    btnMain.innerText = isLogin ? 'CREAR PILOTO' : 'ENTRAR AL NEXO';
+    btnToggle.innerText = isLogin ? 'YA TENGO CUENTA' : 'REGISTRAR NUEVA CUENTA';
+    document.getElementById('auth-user').classList.toggle('hidden');
+};
+
+btnMain.onclick = async () => {
+    const isReg = btnMain.innerText === 'CREAR PILOTO';
+    const path = isReg ? '/api/auth/register' : '/api/auth/login';
     const payload = {
-        email: document.getElementById("email").value,
-        password: document.getElementById("pass").value,
-        username: document.getElementById("user").value
+        email: document.getElementById('auth-email').value,
+        password: document.getElementById('auth-pass').value,
+        username: document.getElementById('auth-user').value
     };
 
-    const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+    const res = await fetch(path, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
     });
 
     const data = await res.json();
     if (data.token) {
         me = data.user;
-        document.getElementById("authScreen").classList.remove("active");
-        document.getElementById("gameScreen").classList.add("active");
-        socket.emit("join_game", { roomId: "Arena_1" });
-        render();
+        localStorage.setItem('token', data.token);
+        enterLobby();
+    } else {
+        document.getElementById('auth-error').innerText = data.error;
     }
 };
 
-document.getElementById("btnToggleReg").onclick = () => {
-    document.getElementById("user").classList.toggle("hidden");
-};
+function enterLobby() {
+    document.getElementById('auth-screen').classList.remove('active');
+    document.getElementById('lobby-screen').classList.add('active');
+    document.getElementById('player-name').innerText = me.username;
+    document.getElementById('player-points').innerText = `${me.points} PTS`;
+    initLobbyPreview();
+}
+
+// --- MOTOR GRÁFICO THREE.JS ---
+function initLobbyPreview() {
+    const container = document.getElementById('preview-container');
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
+
+    // Luces de estudio cinematográfico
+    const light = new THREE.DirectionalLight(0xffffff, 2);
+    light.position.set(5, 5, 5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x404040, 2));
+
+    // Crear la skin actual (ejemplo: Esfera con reflejos metálicos)
+    createPlayerMesh(me.currentSkin);
+    
+    camera.position.z = 5;
+    animatePreview();
+}
+
+function createPlayerMesh(type) {
+    if(playerMesh) scene.remove(playerMesh);
+    let geometry;
+    // Habilidades por geometría
+    switch(type) {
+        case 'cube': geometry = new THREE.BoxGeometry(2, 2, 2); break; // Tanque
+        case 'pyramid': geometry = new THREE.ConeGeometry(1.5, 2, 4); break; // Velocidad
+        case 'hexagon': geometry = new THREE.CylinderGeometry(1.5, 1.5, 1, 6); break; // Escudo
+        default: geometry = new THREE.SphereGeometry(1.5, 32, 32); // Balanceado
+    }
+    const material = new THREE.MeshStandardMaterial({ 
+        color: 0xffffff, 
+        metalness: 0.9, 
+        roughness: 0.1,
+        emissive: 0x111111
+    });
+    playerMesh = new THREE.Mesh(geometry, material);
+    scene.add(playerMesh);
+}
+
+function animatePreview() {
+    requestAnimationFrame(animatePreview);
+    if(playerMesh) {
+        playerMesh.rotation.y += 0.01;
+        playerMesh.rotation.x += 0.005;
+    }
+    renderer.render(scene, camera);
+}
+
+// --- SISTEMA DE JUEGO ---
+function startGame() {
+    document.getElementById('lobby-screen').classList.remove('active');
+    document.getElementById('game-screen').classList.add('active');
+    
+    // Cambiar configuración de cámara para el juego (Tercera persona)
+    socket.emit('join_queue', { user: me });
+}
+
+socket.on('tick', (data) => {
+    // Aquí actualizarías las posiciones de los otros 99 jugadores en el mundo 3D
+});};
 
 // --- GAME LOGIC ---
 socket.on("state", (state) => { roomState = state; });
