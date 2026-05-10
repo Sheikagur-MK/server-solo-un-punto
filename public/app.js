@@ -5,49 +5,41 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let myData = { x: canvas.width / 2, y: canvas.height / 2, trail: [] };
-let allPlayers = {};
+let players = {};
 
-// Movimiento orgánico: Seguimiento de ratón o touch
-window.addEventListener('mousemove', (e) => {
-    myData.x = e.clientX;
-    myData.y = e.clientY;
-    socket.emit('move', { x: myData.x, y: myData.y });
-});
+// Captura de movimiento (Mouse y Touch)
+const updatePos = (e) => {
+    const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+    const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+    socket.emit('move', { x, y });
+};
 
-// Soporte para móviles
+window.addEventListener('mousemove', updatePos);
 window.addEventListener('touchmove', (e) => {
-    myData.x = e.touches[0].clientX;
-    myData.y = e.touches[0].clientY;
-    socket.emit('move', { x: myData.x, y: myData.y });
+    e.preventDefault(); // Evita que la pantalla rebote en móvil
+    updatePos(e);
+}, { passive: false });
+
+socket.on('updatePlayers', (data) => {
+    players = data;
 });
 
-socket.on('updatePlayers', (data) => { allPlayers = data; });
-socket.on('playerMoved', (data) => {
-    if (allPlayers[data.id]) {
-        allPlayers[data.id].x = data.x;
-        allPlayers[data.id].y = data.y;
-    }
-});
-
-function draw() {
-    ctx.fillStyle = 'rgba(10, 10, 10, 0.2)'; // Efecto de estela (Motion Blur)
+function render() {
+    // Fondo negro con rastro (sueldo visual)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (let id in allPlayers) {
-        const p = allPlayers[id];
-        
-        // Dibujar el "Sueldo" (Rastro)
+    for (let id in players) {
+        const p = players[id];
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = p.color;
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 15;
         ctx.shadowColor = p.color;
         ctx.fill();
         ctx.closePath();
     }
-
-    requestAnimationFrame(draw);
+    requestAnimationFrame(render);
 }
 
-draw();
+render();
