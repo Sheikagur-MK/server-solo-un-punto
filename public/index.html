@@ -3,38 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pulse Arena</title>
-  <link rel="stylesheet" href="/styles.css">
+  <title>GEO-STORM 2026</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="app">
-    <section id="introScreen" class="screen active">
-      <canvas id="introCanvas"></canvas>
-      <div class="intro-overlay">
-        <h1>PULSE ARENA</h1>
-        <p>1 punto. 1 onda. 1 vencedor.</p>
+    <section id="authScreen" class="screen active">
+      <div class="card">
+        <h1>GEO-STORM</h1>
+        <button onclick="joinGame()">INICIAR SISTEMA</button>
       </div>
     </section>
 
-    <section id="authScreen" class="screen">
-      <div class="card auth-card">
-        <h2>Bienvenido</h2>
-        <p class="muted">Inicia sesion o create una cuenta para jugar online.</p>
-        <div class="tabs">
-          <button id="tabLogin" class="tab active">Inicia sesion</button>
-          <button id="tabRegister" class="tab">Registrate</button>
-        </div>
-        <form id="authForm">
-          <input id="usernameInput" placeholder="Usuario (solo registro)" class="hidden">
-          <input id="emailInput" type="email" placeholder="Correo">
-          <input id="passwordInput" type="password" placeholder="Contrasena">
-          <button type="submit" class="btn">Continuar</button>
-        </form>
-        <p id="authMsg" class="muted small"></p>
+    <section id="gameScreen" class="screen">
+      <canvas id="gameCanvas"></canvas>
+      <div class="hud">
+        <div id="status">VIVOS: 0</div>
       </div>
     </section>
-
-    <section id="lobbyScreen" class="screen">
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>    <section id="lobbyScreen" class="screen">
       <div class="lobby-shell">
         <aside class="panel profile">
           <div class="avatar-wrap"><canvas id="avatarCanvas"></canvas></div>
