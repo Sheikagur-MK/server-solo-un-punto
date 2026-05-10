@@ -3,160 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON STRIKE | Global Arena</title>
+    <title>PULSE ARENA 2026</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --neon: #0ff; --bg: #050505; }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        
-        .screen { position: absolute; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .active { display: flex; }
+        :root { --accent: #6366f1; --danger: #ef4444; --glass: rgba(255, 255, 255, 0.05); }
+        body, html { margin: 0; padding: 0; background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; overflow: hidden; }
 
-        /* Canvas de Juego */
-        #game-canvas { display: none; background: #000; width: 100vw; height: 100vh; }
-        
-        /* Controles Móvil (Joystick) */
-        #joystick-container { 
-            position: fixed; bottom: 50px; left: 50px; width: 120px; height: 120px; 
-            background: rgba(255,255,255,0.1); border-radius: 50%; display: none; touch-action: none;
-        }
-        #joystick-handle { 
-            position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; 
-            background: var(--neon); border-radius: 50%; box-shadow: 0 0 15px var(--neon);
+        /* Interfaz de Menú Pro */
+        .main-menu {
+            position: absolute; width: 100%; height: 100%; z-index: 100;
+            background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
 
-        .btn-menu { padding: 15px 40px; background: transparent; border: 1px solid var(--neon); color: var(--neon); cursor: pointer; font-size: 20px; }
-        .logo { font-size: 50px; color: var(--neon); text-shadow: 0 0 10px var(--neon); margin-bottom: 20px; }
+        .glass-panel {
+            background: var(--glass); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+
+        .btn-action {
+            width: 320px; padding: 18px; margin: 12px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+            color: white; font-weight: 700; font-size: 16px; letter-spacing: 1px;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-action:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5); }
+
+        /* NPC Tutorial */
+        #npc-overlay {
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 600px; background: rgba(15, 23, 42, 0.9);
+            border-left: 5px solid var(--accent); padding: 20px; border-radius: 0 15px 15px 0;
+            display: none; z-index: 200; align-items: center;
+        }
+        .npc-avatar { width: 60px; height: 60px; background: var(--accent); border-radius: 50%; margin-right: 20px; }
+
+        /* Mecánica de Juego: HUD */
+        #game-hud { position: fixed; top: 20px; width: 100%; display: none; justify-content: space-between; padding: 0 30px; z-index: 50; }
+        .stat-box { background: var(--glass); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 10px; }
+
+        /* Botones Touch (Solo Android) */
+        .touch-controls { position: fixed; bottom: 40px; width: 100%; display: none; justify-content: space-around; z-index: 60; }
     </style>
 </head>
 <body>
 
-    <div id="menu-screen" class="screen active">
-        <div class="logo">NEON STRIKE</div>
-        <button class="btn-menu" onclick="startGame()">ENTRAR A LA ARENA</button>
+    <div id="auth-screen" class="main-menu">
+        <div class="glass-panel">
+            <h1 style="text-align:center; font-size: 3rem; margin-bottom: 30px;">PULSE <span style="color:var(--accent)">2026</span></h1>
+            <input type="text" id="user-input" placeholder="Usuario" style="width:100%; padding:15px; margin-bottom:15px; border-radius:8px; border:none; background:#0f172a; color:white;">
+            <input type="password" id="pass-input" placeholder="Contraseña" style="width:100%; padding:15px; margin-bottom:20px; border-radius:8px; border:none; background:#0f172a; color:white;">
+            <button class="btn-action" onclick="login()">ACCEDER A LA ARENA</button>
+            <p style="text-align:center; font-size:0.8rem; opacity:0.5;">v1.0.4 Private Beta Access</p>
+        </div>
     </div>
 
-    <canvas id="game-canvas"></canvas>
-
-    <div id="joystick-container">
-        <div id="joystick-handle"></div>
+    <div id="menu-screen" class="main-menu" style="display:none;">
+        <div class="stat-box" style="position:absolute; top:20px; right:20px;">
+            <i class="fa-solid fa-coins" style="color:#fbbf24"></i> <span id="coins-display">1,000</span>
+        </div>
+        <h1 class="logo">ARENA HUB</h1>
+        <button class="btn-action" onclick="startTutorial()"><i class="fa-solid fa-chalkboard-user"></i> TUTORIAL (NUEVO)</button>
+        <button class="btn-action" onclick="enterMatch()"><i class="fa-solid fa-play"></i> BUSCAR PARTIDA</button>
+        <button class="btn-menu" onclick="openShop()"><i class="fa-solid fa-cart-shopping"></i> TIENDA DE NÚCLEOS</button>
+        <button class="btn-menu" onclick="openSettings()"><i class="fa-solid fa-gamepad"></i> CONFIGURACIÓN</button>
     </div>
+
+    <div id="npc-overlay">
+        <div class="npc-avatar"></div>
+        <div>
+            <b id="npc-name">OPERADOR X-26:</b>
+            <p id="npc-text">Bienvenido recluta. Te enseñaré a sobrevivir en la arena.</p>
+        </div>
+    </div>
+
+    <canvas id="game-canvas" style="display:none;"></canvas>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        const joystick = document.getElementById('joystick-container');
-        const handle = document.getElementById('joystick-handle');
+        let currentNPCStep = 0;
 
-        let players = {};
-        let myId = null;
-        let keys = {};
-        let moveSpeed = 4;
+        // --- SISTEMA DE TUTORIAL CON NPC ---
+        const tutorialSteps = [
+            "Usa WASD o el Joystick para mover tu núcleo de energía.",
+            "Tu arma es el PULSO. Pulsa ESPACIO (o botón rojo) para lanzar una onda de choque.",
+            "Si un enemigo lanza un pulso, usa el DASH (SHIFT o botón azul) para volverte invulnerable.",
+            "Cada vez que elimines a alguien, el alcance de tu pulso subirá de nivel (Máx 6).",
+            "¡Recuerda! Solo tienes 3 barras de integridad antes de explotar. ¡Buena suerte!"
+        ];
 
-        // Ajustar canvas
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        function startGame() {
-            document.getElementById('menu-screen').classList.remove('active');
-            canvas.style.display = 'block';
-            if ('ontouchstart' in window) joystick.style.display = 'block'; // Solo en celulares
-            socket.emit('joinRoom');
+        function startTutorial() {
+            document.getElementById('menu-screen').style.display = 'none';
+            document.getElementById('npc-overlay').style.display = 'flex';
+            nextTutorialStep();
         }
 
-        // --- LÓGICA DE RED ---
-        socket.on('init', (serverPlayers) => {
-            players = serverPlayers;
-            myId = socket.id;
-            requestAnimationFrame(gameLoop);
-        });
-
-        socket.on('newPlayer', (player) => { players[player.id] = player; });
-        socket.on('playerMoved', (player) => { players[player.id] = player; });
-        socket.on('playerDisconnected', (id) => { delete players[id]; });
-
-        // --- CONTROLES PC ---
-        window.addEventListener('keydown', e => keys[e.code] = true);
-        window.addEventListener('keyup', e => keys[e.code] = false);
-
-        // --- CONTROLES MÓVIL (JOYSTICK) ---
-        let drag = false;
-        joystick.addEventListener('touchstart', () => drag = true);
-        window.addEventListener('touchend', () => {
-            drag = false;
-            handle.style.top = '35px';
-            handle.style.left = '35px';
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if (!drag) return;
-            const rect = joystick.getBoundingClientRect();
-            const touch = e.touches[0];
-            let x = touch.clientX - rect.left - 60;
-            let y = touch.clientY - rect.top - 60;
-            
-            const distance = Math.min(Math.sqrt(x*x + y*y), 50);
-            const angle = Math.atan2(y, x);
-            
-            x = Math.cos(angle) * distance;
-            y = Math.sin(angle) * distance;
-
-            handle.style.left = (x + 35) + 'px';
-            handle.style.top = (y + 35) + 'px';
-
-            // Mover jugador
-            if (players[myId]) {
-                players[myId].x += (x / 50) * moveSpeed;
-                players[myId].y += (y / 50) * moveSpeed;
-                socket.emit('move', { x: players[myId].x, y: players[myId].y });
+        function nextTutorialStep() {
+            if(currentNPCStep < tutorialSteps.length) {
+                document.getElementById('npc-text').innerText = tutorialSteps[currentNPCStep];
+                currentNPCStep++;
+                setTimeout(nextTutorialStep, 4000);
+            } else {
+                document.getElementById('npc-overlay').style.display = 'none';
+                enterMatch();
             }
-        });
+        }
 
-        function gameLoop() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Dibujar Grid de fondo
-            ctx.strokeStyle = '#111';
-            for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
-            for(let i=0; i<canvas.height; i+=50) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(canvas.width,i); ctx.stroke(); }
-
-            // Movimiento PC
-            if (players[myId]) {
-                let moved = false;
-                if (keys['KeyW'] || keys['ArrowUp']) { players[myId].y -= moveSpeed; moved = true; }
-                if (keys['KeyS'] || keys['ArrowDown']) { players[myId].y += moveSpeed; moved = true; }
-                if (keys['KeyA'] || keys['ArrowLeft']) { players[myId].x -= moveSpeed; moved = true; }
-                if (keys['KeyD'] || keys['ArrowRight']) { players[myId].x += moveSpeed; moved = true; }
-                
-                if (moved) socket.emit('move', { x: players[myId].x, y: players[myId].y });
+        // --- LÓGICA DE LOGIN (Mockup para conectar a server.js) ---
+        function login() {
+            const user = document.getElementById('user-input').value;
+            if(user) {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('menu-screen').style.display = 'flex';
+                // Aquí iría el fetch('/login') a tu MongoDB
             }
+        }
 
-            // Dibujar Jugadores
-            for (let id in players) {
-                let p = players[id];
-                ctx.fillStyle = p.color;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = p.color;
-                
-                // Dibujar forma de nave/punto
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 15, 0, Math.PI * 2);
+        // --- MECÁNICA PROFESIONAL: PULSO Y DASH ---
+        // Se integra la lógica del paso anterior pero con efectos visuales de distorsión
+        function drawPlayer(ctx, p, isMyPlayer) {
+            ctx.save();
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = p.color;
+            
+            // Cuerpo del jugador (Efecto cristal)
+            let grad = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 15);
+            grad.addColorStop(0, '#fff');
+            grad.addColorStop(1, p.color);
+            ctx.fillStyle = grad;
+            
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 15 + (p.level * 2), 0, Math.PI*2);
+            ctx.fill();
+            
+            // Barras de vida modernas
+            for(let i=0; i<3; i++) {
+                ctx.fillStyle = i < p.lives ? '#10b981' : '#334155';
+                ctx.roundRect(p.x - 20 + (i*15), p.y - 40, 12, 4, 2);
                 ctx.fill();
-                
-                // Nombre del jugador
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "white";
-                ctx.fillText(id === myId ? "TÚ" : "ENEMIGO", p.x - 10, p.y - 25);
             }
-
-            requestAnimationFrame(gameLoop);
+            ctx.restore();
         }
     </script>
 </body>
