@@ -35,30 +35,31 @@ app.use(express.static(publicPath));
 // --- LÓGICA DE CONEXIÓN ---
 io.on('connection', (socket) => {
     
-    // Registro e Inicio de Sesión
-    socket.on('auth_request', async (data) => {
-        try {
-            if (data.type === 'register') {
-                const hashed = await bcrypt.hash(data.pass, 10);
-                const newUser = new User({ username: data.user, password: hashed });
-                await newUser.save();
-                socket.emit('auth_result', { success: true, user: { username: newUser.username } });
+    // REEMPLAZA tu bloque socket.on('auth_request') con este:
+socket.on('auth_request', async (data) => {
+    try {
+        if (data.type === 'register') {
+            const hashed = await bcrypt.hash(data.pass, 10);
+            const newUser = new User({ username: data.user, password: hashed });
+            await newUser.save();
+            return socket.emit('auth_result', { success: true, user: { username: newUser.username } });
+        } 
+        
+        if (data.type === 'login') {
+            const user = await User.findOne({ username: data.user });
+            if (user && await bcrypt.compare(data.pass, user.password)) {
+                // Sincronizamos los datos del usuario con el socket actual
+                socket.userData = user; 
+                return socket.emit('auth_result', { success: true, user: { username: user.username } });
             } else {
-                const user = await User.findOne({ username: data.user });
-                if (user && await bcrypt.compare(data.pass, user.password)) {
-                    socket.emit('auth_result', { success: true, user: { username: user.username } });
-                } else {
-                    socket.emit('auth_result', { success: false, message: "Datos incorrectos" });
-                }
+                return socket.emit('auth_result', { success: false, message: "Usuario no encontrado o clave incorrecta." });
             }
-        } catch (e) {
-            socket.emit('auth_result', { success: false, message: "El usuario ya existe" });
         }
-    });
-
-    socket.on('disconnect', () => {
-        console.log("Usuario desconectado");
-    });
+    } catch (e) {
+        // Este bloque captura el error si el usuario ya existe al registrarse
+        console.error("Error en Auth:", e.message);
+        return socket.emit('auth_result', { success: false, message: "El nombre de usuario ya está en uso o error de red." });
+    }
 });
 
 const PORT = process.env.PORT || 3000;
