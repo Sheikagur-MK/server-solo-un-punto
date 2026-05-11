@@ -50,6 +50,7 @@ window.addEventListener('keydown', e => {
         socket.emit('player_ability');
     }
 });
+
 window.addEventListener('keyup', e => {
     const k = KEY_MAP[e.key];
     if (k) { keys[k] = false; sendInput(); }
@@ -65,7 +66,6 @@ canvas.addEventListener('mousemove', e => {
     sendInput();
 });
 
-// Disparar con clic izquierdo
 canvas.addEventListener('mousedown', e => {
     if (e.button === 0 && matchActive) {
         socket.emit('player_shoot', { angle: mouseAngle });
@@ -78,6 +78,7 @@ canvas.addEventListener('touchstart', e => {
     touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     e.preventDefault();
 }, { passive: false });
+
 canvas.addEventListener('touchmove', e => {
     if (!touchStart || !matchActive) return;
     const dx = e.touches[0].clientX - touchStart.x;
@@ -91,6 +92,7 @@ canvas.addEventListener('touchmove', e => {
     sendInput();
     e.preventDefault();
 }, { passive: false });
+
 canvas.addEventListener('touchend', () => {
     keys.up = keys.down = keys.left = keys.right = false;
     sendInput();
@@ -103,7 +105,6 @@ function sendInput() {
 
 // ─── EVENTOS DEL SERVIDOR ─────────────────────────────────────────────────────
 
-// CAMBIO: Sincronización con la UI neón al entrar en cola
 socket.on('queue_status', (data) => {
     if (window.app && data.counting) {
         window.app.updateRing(data.countdown);
@@ -119,12 +120,12 @@ socket.on('match_start', (data) => {
     camX = data.self.x - canvas.width  / 2;
     camY = data.self.y - canvas.height / 2;
 
-    // CAMBIO: Usar la función switchScreen de tu HTML para limpiar overlays
     if (window.app && typeof window.app.switchScreen === 'function') {
         window.app.switchScreen(null); 
     }
     
     document.getElementById('screen-game-ui').style.display = 'block';
+    // Sincronización con las nuevas habilidades del HTML
     document.getElementById('hud-shape-name').innerText = shapeAbilityName(data.self.shape);
 
     loop();
@@ -184,7 +185,7 @@ function render() {
     drawGrid();
     drawZone(gameState.zone);
 
-    // Balas con brillo
+    // Balas con efectos de brillo neón
     gameState.bullets.forEach(b => {
         ctx.beginPath();
         ctx.arc(b.x, b.y, 6, 0, Math.PI * 2);
@@ -210,13 +211,14 @@ function drawPlayer(p, isSelf) {
     ctx.translate(p.x, p.y);
     const r = 20;
 
+    // Efecto visual de escudo activo (para la clase Círculo)
     if (p.shielded) {
         ctx.beginPath();
-        ctx.arc(0, 0, r + 10, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(0,243,255,0.6)';
-        ctx.lineWidth = 3;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#00f3ff';
+        ctx.arc(0, 0, r + 12, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,255,136,0.8)';
+        ctx.lineWidth = 4;
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#00ff88';
         ctx.stroke();
         ctx.shadowBlur = 0;
     }
@@ -225,12 +227,14 @@ function drawPlayer(p, isSelf) {
     ctx.shadowColor = p.color;
     ctx.fillStyle = p.color;
 
+    // DIBUJO BASADO EN LA FIGURA SELECCIONADA
     ctx.beginPath();
     if (p.shape === 'circle') {
         ctx.arc(0, 0, r, 0, Math.PI * 2);
     } else if (p.shape === 'square') {
         ctx.rect(-r, -r, r*2, r*2);
-    } else {
+    } else if (p.shape === 'triangle') {
+        // Un triángulo más agresivo para el combate
         ctx.moveTo(0, -r - 5);
         ctx.lineTo(-r - 5, r + 5);
         ctx.lineTo(r + 5, r + 5);
@@ -239,83 +243,92 @@ function drawPlayer(p, isSelf) {
     ctx.fill();
     ctx.shadowBlur = 0;
 
+    // Indicador de dirección (puntero)
     if (isSelf) {
         ctx.save();
         ctx.rotate(mouseAngle);
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(r, 0);
-        ctx.lineTo(r + 20, 0);
+        ctx.moveTo(r + 5, 0);
+        ctx.lineTo(r + 25, 0);
         ctx.stroke();
         ctx.restore();
     }
 
-    const barW = 44, barH = 5;
+    // Barras de Vida sobre el jugador
+    const barW = 50, barH = 6;
     const hpPct = Math.max(0, p.hp / p.maxHp);
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(-barW/2, -r - 14, barW, barH);
-    ctx.fillStyle = hpPct > 0.5 ? '#00ff88' : hpPct > 0.25 ? '#ffaa00' : '#ff4444';
-    ctx.fillRect(-barW/2, -r - 14, barW * hpPct, barH);
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillRect(-barW/2, -r - 20, barW, barH);
+    
+    // Color dinámico según salud
+    ctx.fillStyle = hpPct > 0.6 ? '#00ff88' : hpPct > 0.3 ? '#ffaa00' : '#ff4444';
+    ctx.fillRect(-barW/2, -r - 20, barW * hpPct, barH);
 
+    // Texto de nombre
     ctx.fillStyle = isSelf ? '#ffffff' : 'rgba(255,255,255,0.7)';
-    ctx.font = `bold 11px Rajdhani, sans-serif`;
+    ctx.font = `bold 13px Orbitron, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(p.username, 0, -r - 18);
+    ctx.fillText(p.username, 0, -r - 28);
     ctx.restore();
 }
 
 function drawZone(zone) {
+    if (!zone) return;
     ctx.save();
+    // Exterior de la zona (peligro)
     ctx.beginPath();
-    ctx.rect(0, 0, worldW, worldH);
+    ctx.rect(-5000, -5000, 15000, 15000); // Área masiva para cubrir todo
     ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2, true);
-    ctx.fillStyle = 'rgba(120, 0, 255, 0.18)';
+    ctx.fillStyle = 'rgba(255, 0, 70, 0.15)';
     ctx.fill();
 
+    // Borde de la zona
     ctx.beginPath();
     ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(180, 0, 255, 0.8)';
-    ctx.lineWidth = 3;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = '#aa00ff';
+    ctx.strokeStyle = 'rgba(255, 0, 100, 0.8)';
+    ctx.lineWidth = 5;
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = '#ff0064';
     ctx.stroke();
     ctx.restore();
 }
 
 function drawGrid() {
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = 'rgba(0,243,255,0.05)';
     ctx.lineWidth = 1;
-    const step = 100;
+    const step = 150;
     for (let x = 0; x <= worldW; x += step) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, worldH); ctx.stroke();
     }
     for (let y = 0; y <= worldH; y += step) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(worldW, y); ctx.stroke();
     }
-    ctx.strokeStyle = 'rgba(255,0,0,0.3)';
-    ctx.lineWidth = 4;
+    // Bordes del mapa
+    ctx.strokeStyle = 'rgba(0,243,255,0.2)';
+    ctx.lineWidth = 10;
     ctx.strokeRect(0, 0, worldW, worldH);
 }
 
 function drawMinimap(state) {
-    const SIZE = 160;
-    const PAD  = 16;
+    const SIZE = 180;
+    const PAD  = 20;
     const mx   = canvas.width - SIZE - PAD;
     const my   = PAD;
     const scaleX = SIZE / worldW;
     const scaleY = SIZE / worldH;
 
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillStyle = 'rgba(5, 5, 15, 0.85)';
     ctx.fillRect(mx, my, SIZE, SIZE);
-    ctx.strokeStyle = 'rgba(0,243,255,0.4)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0,243,255,0.3)';
+    ctx.lineWidth = 2;
     ctx.strokeRect(mx, my, SIZE, SIZE);
 
     if (state.zone) {
         ctx.beginPath();
         ctx.arc(mx + state.zone.x * scaleX, my + state.zone.y * scaleY, state.zone.radius * scaleX, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(170,0,255,0.7)';
+        ctx.strokeStyle = '#ff0064';
         ctx.lineWidth = 1.5;
         ctx.stroke();
     }
@@ -323,9 +336,9 @@ function drawMinimap(state) {
     const self = getSelf();
     if (self) {
         ctx.beginPath();
-        ctx.arc(mx + self.x * scaleX, my + self.y * scaleY, 4, 0, Math.PI * 2);
+        ctx.arc(mx + self.x * scaleX, my + self.y * scaleY, 5, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = '#00f3ff';
         ctx.fill();
         ctx.shadowBlur = 0;
@@ -336,25 +349,29 @@ function drawAbilityCooldown() {
     const self = getSelf();
     if (!self) return;
 
-    const cx = 80, cy = canvas.height - 80, r = 34;
+    const cx = 80, cy = canvas.height - 80, r = 38;
     const pct = abilityCooldownMax > 0 ? abilityCooldownMs / abilityCooldownMax : 0;
     const ready = pct <= 0;
 
+    // Fondo del círculo de habilidad
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
     ctx.fill();
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 4;
+    ctx.stroke();
 
     if (!ready) {
         ctx.beginPath();
-        ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (1-pct) * Math.PI * 2);
-        ctx.strokeStyle = '#00f3ff';
+        ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (pct) * Math.PI * 2);
+        ctx.strokeStyle = 'var(--neon-accent)';
         ctx.lineWidth = 4;
         ctx.stroke();
     } else {
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = '#00ff88';
+        ctx.strokeStyle = 'var(--neon-success)';
         ctx.lineWidth = 4;
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#00ff88';
@@ -363,10 +380,10 @@ function drawAbilityCooldown() {
     }
 
     const name = shapeAbilityName(self.shape);
-    ctx.fillStyle = ready ? '#00ff88' : '#aaa';
-    ctx.font = 'bold 10px Orbitron, sans-serif';
+    ctx.fillStyle = ready ? '#00ff88' : '#666';
+    ctx.font = 'bold 11px Orbitron, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(name, cx, cy + 4);
+    ctx.fillText(name, cx, cy + 5);
 }
 
 function updateHUD(data) {
@@ -388,7 +405,7 @@ function updateHUD(data) {
     if (tbody) {
         const sorted = [...data.players].filter(p => p.alive).sort((a,b) => b.kills - a.kills).slice(0, 8);
         tbody.innerHTML = sorted.map((p, i) =>
-            `<tr style="color:${p.id === selfId ? '#00f3ff' : '#ccc'}">
+            `<tr style="color:${p.id === selfId ? 'var(--neon-primary)' : '#ccc'}">
                 <td>${i+1}</td>
                 <td>${p.username}</td>
                 <td>${p.kills}</td>
@@ -411,7 +428,7 @@ function showEndScreen(data) {
     const self = gameState?.players?.find(p => p.id === selfId);
     const won  = data.winner && self && data.winner === self.username;
 
-    document.getElementById('end-title').innerText   = won ? '¡VICTORIA!' : 'FIN DE PARTIDA';
+    document.getElementById('end-title').innerText   = won ? '¡VICTORIA GEOMÉTRICA!' : 'FIN DE PARTIDA';
     document.getElementById('end-winner').innerText  = data.winner || 'Nadie';
     document.getElementById('end-title').style.color = won ? 'var(--neon-success)' : 'var(--neon-accent)';
 
@@ -432,6 +449,12 @@ function getSelf() {
     if (!gameState) return null;
     return gameState.players.find(p => p.id === selfId) || null;
 }
+
+// SINCRONIZACIÓN DE HABILIDADES CON LOS ATRIBUTOS DE CADA FIGURA
 function shapeAbilityName(shape) {
-    return { circle: 'ESCUDO', square: 'DASH', triangle: 'RÁFAGA' }[shape] || '?';
+    return { 
+        circle: 'SUPER ESCUDO', 
+        triangle: 'DASH AGRESIVO', 
+        square: 'RÁFAGA BALÍSTICA' 
+    }[shape] || 'HABILIDAD';
 }
