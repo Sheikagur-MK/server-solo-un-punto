@@ -85,6 +85,7 @@
 
     <div id="screen-lobby" class="screen">
         <h1>BIENVENIDO, <span id="player-name" style="color:var(--neon-success)">PILOTO</span></h1>
+        
         <div class="character-preview" id="char-viz">
             <svg width="150" height="150" viewBox="0 0 100 100">
                 <polygon points="50,10 90,90 10,90" fill="none" stroke="#00f3ff" stroke-width="2">
@@ -92,6 +93,7 @@
                 </polygon>
             </svg>
         </div>
+
         <div class="game-modes">
             <div class="mode-card" onclick="app.joinQueue('public')">
                 <h3>PARTIDA PÚBLICA</h3>
@@ -132,6 +134,7 @@
                 this.socket = io();
                 this.setupEvents();
                 this.initCursor();
+                console.log("Geo-Engine 2026 Online");
             },
 
             initCursor() {
@@ -149,23 +152,22 @@
                         this.switchScreen('screen-lobby');
                         document.getElementById('player-name').innerText = this.user.username;
                     } else {
-                        // Aquí el servidor enviará el mensaje de error de MongoDB
+                        // Muestra el mensaje exacto de MongoDB (ej: "Usuario ya existe")
                         alert(res.message);
                     }
                 });
             },
 
-            // ESTA ES LA ÚNICA PARTE QUE CAMBIÉ PARA QUE FUNCIONE EL LOGIN/REGISTRO
             authenticate(type) {
                 const user = document.getElementById('user-in').value;
                 const pass = document.getElementById('pass-in').value;
                 if(!user || !pass) return alert("Completa los datos");
-
-                // Enviamos los eventos que el servidor corregido está esperando
-                if(type === 'register') {
-                    this.socket.emit('register_user', { user, pass });
-                } else {
+                
+                // CORRECCIÓN FINAL: Diferenciamos el evento para que el servidor valide o cree en MongoDB
+                if (type === 'login') {
                     this.socket.emit('login_user', { user, pass });
+                } else {
+                    this.socket.emit('register_user', { user, pass });
                 }
             },
 
