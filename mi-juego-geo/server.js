@@ -28,33 +28,74 @@ app.use(express.static(path.join(__dirname, 'public')));
 let onlinePlayers = {};
 let privateRooms = {};
 
+const COLORS = ['#00f3ff', '#ff00c8', '#00ff88', '#ffaa00', '#ff4444', '#aa44ff'];
+const SHAPES = ['circle', 'square', 'triangle'];
+
 io.on('connection', (socket) => {
-    
+    console.log(`>>> Conexión entrante: ${socket.id}`);
+
     // --- LÓGICA DE REGISTRO ---
     socket.on('register_user', async (data) => {
+        if (!data.user || !data.pass || data.user.trim() === '' || data.pass.trim() === '') {
+            return socket.emit('auth_result', { success: false, message: "Usuario y contraseña son obligatorios." });
+        }
         try {
             const hashed = await bcrypt.hash(data.pass, 10);
-            const newUser = new User({ username: data.user, password: hashed });
+            const newUser = new User({ username: data.user.trim(), password: hashed });
             await newUser.save();
-            socket.emit('auth_result', { success: true, message: "Cuenta creada con éxito." });
+            socket.emit('auth_result', { success: true, message: "Cuenta creada con éxito. Ahora inicia sesión." });
         } catch (e) {
-            socket.emit('auth_result', { success: false, message: "Este usuario ya está registrado." });
+            // CORRECCIÓN: Diferenciar error de duplicado (11000) de otros errores
+            if (e.code === 11000) {
+                socket.emit('auth_result', { success: false, message: "Este usuario ya está registrado." });
+            } else {
+                console.error("Error al registrar:", e.message);
+                socket.emit('auth_result', { success: false, message: "Error interno al crear la cuenta. Intenta de nuevo." });
+            }
         }
     });
 
     // --- LÓGICA DE LOGIN ---
     socket.on('login_user', async (data) => {
+        if (!data.user || !data.pass || data.user.trim() === '' || data.pass.trim() === '') {
+            return socket.emit('auth_result', { success: false, message: "Usuario y contraseña son obligatorios." });
+        }
         try {
-            const user = await User.findOne({ username: data.user });
+            const user = await User.findOne({ username: data.user.trim() });
             if (user && await bcrypt.compare(data.pass, user.password)) {
                 socket.userData = user;
+                // CORRECCIÓN: Registrar al jugador en onlinePlayers al hacer login
+                const idx = Object.keys(onlinePlayers).length;
+                onlinePlayers[socket.id] = {
+                    x: Math.random() * 800 + 100,
+                    y: Math.random() * 600 + 100,
+                    color: COLORS[idx % COLORS.length],
+                    shape: SHAPES[idx % SHAPES.length],
+                    username: user.username
+                };
                 socket.emit('auth_result', { success: true, user: { username: user.username, linas: user.linas } });
             } else {
                 socket.emit('auth_result', { success: false, message: "Usuario o contraseña incorrectos." });
             }
         } catch (e) {
+            console.error("Error al hacer login:", e.message);
             socket.emit('auth_result', { success: false, message: "Error interno en el servidor." });
         }
+    });
+
+    // CORRECCIÓN: Manejador de movimiento (faltaba completamente)
+    socket.on('move', (data) => {
+        if (onlinePlayers[socket.id]) {
+            onlinePlayers[socket.id].x = data.x;
+            onlinePlayers[socket.id].y = data.y;
+        }
+    });
+
+    // CORRECCIÓN: Manejador de cola de partida (faltaba completamente)
+    socket.on('enter_queue', (data) => {
+        if (!socket.userData) return;
+        console.log(`>>> ${socket.userData.username} entró a la cola: modo ${data.mode}`);
+        socket.emit('queue_status', { waiting: true, players: Object.keys(onlinePlayers).length });
     });
 
     // --- SISTEMA DE PARTIDAS PRIVADAS ---
@@ -66,10 +107,24 @@ io.on('connection', (socket) => {
         socket.emit('private_ready', { code: roomCode });
     });
 
+    socket.on('join_private', (data) => {
+        const room = privateRooms[data.code];
+        if (!room) return socket.emit('private_error', { message: "Sala no encontrada." });
+        room.players.push(socket.id);
+        socket.join(data.code);
+        socket.emit('private_joined', { code: data.code });
+    });
+
     socket.on('disconnect', () => {
+        console.log(`>>> Desconectado: ${socket.id}`);
         delete onlinePlayers[socket.id];
     });
 });
+
+// CORRECCIÓN: Broadcast del estado del juego a todos los clientes (~60fps)
+setInterval(() => {
+    io.emit('update', onlinePlayers);
+}, 1000 / 60);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
