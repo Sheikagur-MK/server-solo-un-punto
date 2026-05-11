@@ -3,333 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GEO-FLUX ELITE 2026 | Battle Arena</title>
-    
+    <title>GEO-BATTLE ROYAL 2026 | THE NEXT GEN</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
-    
     <style>
         :root {
-            --neon-green: #00ff88;
-            --neon-blue: #00d4ff;
-            --neon-red: #ff0055;
-            --dark-bg: #050508;
-            --panel-bg: rgba(15, 15, 25, 0.95);
+            --neon-primary: #00f3ff; --neon-accent: #ff00c8; --neon-success: #00ff88;
+            --bg-deep: #020205; --glass: rgba(15, 15, 25, 0.85);
+        }
+        * { box-sizing: border-box; font-family: 'Rajdhani', sans-serif; cursor: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-deep); overflow: hidden; color: #fff; }
+
+        /* --- CURSOR PERSONALIZADO 2026 --- */
+        #custom-cursor {
+            position: fixed; width: 20px; height: 20px; border: 2px solid var(--neon-primary);
+            border-radius: 50%; pointer-events: none; z-index: 10000; transition: transform 0.1s;
+            box-shadow: 0 0 10px var(--neon-primary);
         }
 
-        * { box-sizing: border-box; outline: none; }
-        
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            background-color: var(--dark-bg);
-            color: #fff;
-            font-family: 'Rajdhani', sans-serif;
-            overflow: hidden;
+        /* --- SISTEMA DE PANTALLAS --- */
+        .screen {
+            position: absolute; width: 100%; height: 100%; display: none;
+            justify-content: center; align-items: center; z-index: 100;
+            background: radial-gradient(circle at center, #0a0a1a 0%, #000 100%);
         }
+        .screen.active { display: flex; animation: fadeIn 0.8s ease; }
 
-        /* --- SISTEMA DE CAPAS (UI) --- */
-        #game-interface {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 100;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle, rgba(20,20,40,0.8) 0%, rgba(0,0,0,1) 100%);
+        /* --- INTERFAZ DE USUARIO (GLASSMORPHISM) --- */
+        .panel {
+            background: var(--glass); border: 1px solid var(--neon-primary);
+            padding: 3rem; border-radius: 20px; width: 450px; text-align: center;
+            backdrop-filter: blur(15px); box-shadow: 0 0 40px rgba(0, 243, 255, 0.15);
         }
+        h1 { font-family: 'Orbitron'; font-size: 2.2rem; letter-spacing: 4px; margin-bottom: 2rem; color: var(--neon-primary); }
 
-        .window-panel {
-            background: var(--panel-bg);
-            border: 2px solid var(--neon-blue);
-            border-radius: 10px;
-            padding: 40px;
-            width: 90%;
-            max-width: 500px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2.5rem;
-            margin-bottom: 30px;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-            color: var(--neon-blue);
-            text-shadow: 0 0 15px var(--neon-blue);
-        }
-
-        /* --- FORMULARIOS --- */
-        .input-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; color: var(--neon-blue); }
-        input[type="text"], input[type="password"] {
-            width: 100%;
-            padding: 12px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #444;
-            color: #fff;
-            font-size: 1.1rem;
-            border-radius: 5px;
+        /* --- INPUTS Y BOTONES --- */
+        .input-box { width: 100%; padding: 12px; margin: 10px 0; background: rgba(0,0,0,0.4); border: 1px solid #333; color: #fff; border-radius: 5px; }
+        .btn {
+            width: 100%; padding: 15px; margin-top: 15px; border: none; font-family: 'Orbitron';
+            font-weight: bold; font-size: 1rem; cursor: pointer; position: relative;
+            background: var(--neon-primary); color: #000; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
             transition: 0.3s;
         }
-        input:focus { border-color: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+        .btn:hover { background: var(--neon-success); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0, 255, 136, 0.3); }
+        .btn.secondary { background: transparent; border: 1px solid var(--neon-accent); color: var(--neon-accent); }
 
-        /* --- BOTONES --- */
-        .btn-prime {
-            width: 100%;
-            padding: 15px;
-            background: var(--neon-blue);
-            color: #000;
-            border: none;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 900;
-            cursor: pointer;
-            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
-            transition: 0.3s;
-            margin-top: 10px;
+        /* --- LOBBY ANIMADO --- */
+        #lobby-ui { flex-direction: column; }
+        .character-preview {
+            width: 200px; height: 200px; margin: 20px;
+            display: flex; justify-content: center; align-items: center;
+            animation: float 3s infinite ease-in-out;
         }
-        .btn-prime:hover { background: var(--neon-green); transform: scale(1.05); }
+        @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-20px) rotate(10deg); } }
 
-        /* --- SELECCIÓN DE PERSONAJE --- */
-        .char-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-            margin: 25px 0;
+        .game-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 600px; }
+        .mode-card {
+            background: rgba(255,255,255,0.05); border: 1px solid #222; padding: 20px;
+            border-radius: 10px; cursor: pointer; transition: 0.3s;
         }
-        .char-card {
-            border: 1px solid #333;
-            padding: 10px;
-            cursor: pointer;
-            transition: 0.3s;
-            background: rgba(255,255,255,0.05);
-        }
-        .char-card.active { border-color: var(--neon-green); background: rgba(0,255,136,0.1); }
-        .char-card i { font-size: 2rem; display: block; margin-bottom: 5px; }
-
-        /* --- HUD DE JUEGO --- */
-        #hud {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%;
-            padding: 20px;
-            display: none;
-            z-index: 50;
-            pointer-events: none;
-        }
-        .stat-bar {
-            width: 250px;
-            height: 25px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #fff;
-            margin-bottom: 10px;
-            overflow: hidden;
-        }
-        #hp-fill { width: 100%; height: 100%; background: var(--neon-red); transition: 0.3s; }
-        
-        #mini-map {
-            position: absolute;
-            bottom: 20px; right: 20px;
-            width: 150px; height: 150px;
-            background: rgba(0, 20, 40, 0.7);
-            border: 2px solid var(--neon-blue);
-            border-radius: 50%;
-        }
+        .mode-card:hover { border-color: var(--neon-primary); background: rgba(0, 243, 255, 0.1); }
 
         /* --- CANVAS --- */
-        canvas { display: block; cursor: crosshair; }
+        #gameCanvas { display: block; filter: contrast(1.1) saturate(1.2); }
     </style>
 </head>
 <body>
 
-    <div id="game-interface">
+    <div id="custom-cursor"></div>
+
+    <div id="screen-auth" class="screen active">
+        <div class="panel">
+            <h1>SISTEMA_GEO</h1>
+            <div id="auth-form">
+                <input type="text" id="user-in" class="input-box" placeholder="PILOTO_ID">
+                <input type="password" id="pass-in" class="input-box" placeholder="ACCESS_CODE">
+                <button class="btn" onclick="app.authenticate('login')">INICIAR SESIÓN</button>
+                <button class="btn secondary" onclick="app.authenticate('register')">CREAR NUEVA CUENTA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-lobby" class="screen">
+        <h1>BIENVENIDO, <span id="player-name" style="color:var(--neon-success)">PILOTO</span></h1>
         
-        <div id="screen-auth" class="window-panel">
-            <h1>AUTH_SYSTEM</h1>
-            <div class="input-group">
-                <label>IDENTIFICADOR DE PILOTO</label>
-                <input type="text" id="username" placeholder="User_ID...">
-            </div>
-            <div class="input-group">
-                <label>CÓDIGO DE ACCESO</label>
-                <input type="password" id="password" placeholder="********">
-            </div>
-            <button class="btn-prime" onclick="game.login()">ESTABLECER CONEXIÓN</button>
+        <div class="character-preview" id="char-viz">
+            <svg width="150" height="150" viewBox="0 0 100 100">
+                <polygon points="50,10 90,90 10,90" fill="none" stroke="#00f3ff" stroke-width="2">
+                    <animate attributeName="stroke-dasharray" from="0,300" to="300,0" dur="3s" repeatCount="indefinite" />
+                </polygon>
+            </svg>
         </div>
 
-        <div id="screen-lobby" class="window-panel" style="display: none;">
-            <h1>HANGAR_GEO</h1>
-            <p>PILOTO CONECTADO: <span id="user-display" style="color: var(--neon-green)">---</span></p>
-            
-            <label>SELECCIONA TU FORMA DE COMBATE</label>
-            <div class="char-grid">
-                <div class="char-card active" onclick="game.setShape('striker', this)">
-                    <span>TRIÁNGULO</span>
-                    <small>VELOCIDAD++</small>
-                </div>
-                <div class="char-card" onclick="game.setShape('tank', this)">
-                    <span>CUADRADO</span>
-                    <small>DEFENSA++</small>
-                </div>
-                <div class="char-card" onclick="game.setShape('nova', this)">
-                    <span>CÍRCULO</span>
-                    <small>HABILIDAD++</small>
-                </div>
+        <div class="game-modes">
+            <div class="mode-card" onclick="app.joinQueue('public')">
+                <h3>PARTIDA PÚBLICA</h3>
+                <p>Busca oponentes en la red global (Hasta 100 jugadores).</p>
             </div>
-
-            <div style="text-align: left; margin-bottom: 20px; background: #000; padding: 10px;">
-                <small>ESTADÍSTICAS GLOBALES:</small><br>
-                <small>VICTORIAS: 0 | PUNTOS: 1500</small>
+            <div class="mode-card" onclick="app.showPrivateMenu()">
+                <h3>PARTIDA PRIVADA</h3>
+                <p>Crea un servidor seguro con código de acceso.</p>
             </div>
-
-            <button class="btn-prime" onclick="game.startMatch()">DESPLEGAR EN ARENA</button>
+            <div class="mode-card" onclick="app.openShop()">
+                <h3>TIENDA / SKINS</h3>
+                <p>Canjea tus puntos por nuevas formas y habilidades.</p>
+            </div>
+            <div class="mode-card" onclick="app.logout()">
+                <h3>SALIR</h3>
+                <p>Desconectar del núcleo.</p>
+            </div>
         </div>
     </div>
 
-    <div id="hud">
-        <div class="stat-bar"><div id="hp-fill"></div></div>
-        <div style="font-family: 'Orbitron'">COORDENADAS: <span id="pos-x">0</span>, <span id="pos-y">0</span></div>
-        <div style="margin-top: 5px;">JUGADORES EN LÍNEA: <span id="online-count">1</span></div>
-        <div id="mini-map"></div>
+    <div id="screen-loading" class="screen">
+        <div class="panel">
+            <h1 id="loading-text">BUSCANDO PILOTOS...</h1>
+            <div id="queue-count">Jugadores encontrados: 1 / 100</div>
+        </div>
     </div>
 
-    <canvas id="mainCanvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const game = {
-            socket: null,
-            canvas: document.getElementById('mainCanvas'),
-            ctx: null,
+        const app = {
             state: 'AUTH',
-            user: { name: '', shape: 'striker', color: '#00ff88' },
-            players: {},
-            camera: { x: 0, y: 0 },
-            worldSize: 5000, // Mapa masivo 2026
+            socket: null,
+            user: null,
 
             init() {
-                this.ctx = this.canvas.getContext('2d');
-                this.resize();
-                window.addEventListener('resize', () => this.resize());
                 this.socket = io();
-                this.setupSocket();
-                this.loop();
+                this.setupEvents();
+                this.initCursor();
+                console.log("Geo-Engine 2026 Online");
             },
 
-            resize() {
-                this.canvas.width = window.innerWidth;
-                this.canvas.height = window.innerHeight;
-            },
-
-            setupSocket() {
-                this.socket.on('update_world', (data) => {
-                    this.players = data;
-                    document.getElementById('online-count').innerText = Object.keys(data).length;
+            initCursor() {
+                const cursor = document.getElementById('custom-cursor');
+                window.addEventListener('mousemove', e => {
+                    cursor.style.left = e.clientX + 'px';
+                    cursor.style.top = e.clientY + 'px';
                 });
             },
 
-            login() {
-                const name = document.getElementById('username').value;
-                if(!name) return alert("Ingresa un usuario");
-                this.user.name = name;
-                document.getElementById('user-display').innerText = name;
-                document.getElementById('screen-auth').style.display = 'none';
-                document.getElementById('screen-lobby').style.display = 'block';
-                this.state = 'LOBBY';
-            },
-
-            setShape(shape, el) {
-                this.user.shape = shape;
-                document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
-                el.classList.add('active');
-            },
-
-            startMatch() {
-                document.getElementById('game-interface').style.display = 'none';
-                document.getElementById('hud').style.display = 'block';
-                this.state = 'PLAYING';
-                this.socket.emit('join_game', this.user);
-                
-                // Control de movimiento real
-                window.addEventListener('mousemove', (e) => {
-                    if(this.state !== 'PLAYING') return;
-                    // Lógica de movimiento hacia el cursor
-                    const dx = e.clientX - window.innerWidth/2;
-                    const dy = e.clientY - window.innerHeight/2;
-                    this.camera.x += dx * 0.05;
-                    this.camera.y += dy * 0.05;
-                    
-                    document.getElementById('pos-x').innerText = Math.floor(this.camera.x);
-                    document.getElementById('pos-y').innerText = Math.floor(this.camera.y);
-                    
-                    this.socket.emit('move', { x: this.camera.x, y: this.camera.y });
+            setupEvents() {
+                this.socket.on('auth_result', (res) => {
+                    if(res.success) {
+                        this.user = res.user;
+                        this.switchScreen('screen-lobby');
+                        document.getElementById('player-name').innerText = this.user.username;
+                    } else {
+                        alert("Error de autenticación: " + res.message);
+                    }
                 });
             },
 
-            drawPlayer(p) {
-                this.ctx.save();
-                this.ctx.translate(p.x - this.camera.x + window.innerWidth/2, p.y - this.camera.y + window.innerHeight/2);
-                
-                // Aura neón
-                this.ctx.shadowBlur = 20;
-                this.ctx.shadowColor = p.color || '#00ff88';
-                this.ctx.fillStyle = p.color || '#00ff88';
-
-                this.ctx.beginPath();
-                if(p.shape === 'striker') {
-                    this.ctx.moveTo(0, -25);
-                    this.ctx.lineTo(-20, 20);
-                    this.ctx.lineTo(20, 20);
-                } else if(p.shape === 'tank') {
-                    this.ctx.rect(-22, -22, 44, 44);
-                } else {
-                    this.ctx.arc(0, 0, 22, 0, Math.PI*2);
-                }
-                this.ctx.fill();
-                this.ctx.closePath();
-
-                // Nombre del jugador
-                this.ctx.shadowBlur = 0;
-                this.ctx.fillStyle = "#fff";
-                this.ctx.font = "bold 14px Orbitron";
-                this.ctx.textAlign = "center";
-                this.ctx.fillText(p.name || 'Piloto', 0, -35);
-                
-                this.ctx.restore();
+            authenticate(type) {
+                const user = document.getElementById('user-in').value;
+                const pass = document.getElementById('pass-in').value;
+                if(!user || !pass) return alert("Completa los datos");
+                this.socket.emit('auth_request', { type, user, pass });
             },
 
-            loop() {
-                // Renderizado con efecto Trail (Sueldo)
-                this.ctx.fillStyle = 'rgba(5, 5, 10, 0.2)';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            switchScreen(id) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+            },
 
-                if(this.state === 'PLAYING') {
-                    // Dibujar rejilla de movimiento
-                    this.ctx.strokeStyle = '#1a1a2e';
-                    this.ctx.lineWidth = 1;
-                    const offsetX = -this.camera.x % 100;
-                    const offsetY = -this.camera.y % 100;
-                    
-                    for(let x = offsetX; x < this.canvas.width; x += 100) {
-                        this.ctx.beginPath(); this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.canvas.height); this.ctx.stroke();
-                    }
-                    for(let y = offsetY; y < this.canvas.height; y += 100) {
-                        this.ctx.beginPath(); this.ctx.moveTo(0, y); this.ctx.lineTo(this.canvas.width, y); this.ctx.stroke();
-                    }
+            joinQueue(mode) {
+                this.switchScreen('screen-loading');
+                this.socket.emit('enter_queue', { mode, class: 'striker' });
+            },
 
-                    // Dibujar a todos los jugadores
-                    for(let id in this.players) {
-                        this.drawPlayer(this.players[id]);
-                    }
-                }
-
-                requestAnimationFrame(() => this.loop());
-            }
+            // Stubs para expansión
+            showPrivateMenu() { alert("Generando código de sala privada..."); },
+            openShop() { alert("Cargando catálogo de habilidades 2026..."); },
+            logout() { location.reload(); }
         };
 
-        game.init();
+        app.init();
     </script>
 </body>
 </html>
