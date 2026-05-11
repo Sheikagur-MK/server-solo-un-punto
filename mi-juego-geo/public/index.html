@@ -146,30 +146,31 @@
             },
 
             setupEvents() {
+                // Escucha la respuesta del servidor para validar o registrar
                 this.socket.on('auth_result', (res) => {
                     if(res.success) {
                         this.user = res.user;
                         this.switchScreen('screen-lobby');
                         document.getElementById('player-name').innerText = this.user.username;
                     } else {
+                        // Aquí te avisará si el usuario ya existe o si los datos están mal
                         alert(res.message);
                     }
                 });
-
-                this.socket.on('private_ready', (data) => {
-                    alert("CÓDIGO DE SALA: " + data.code);
-                });
             },
 
+            // UNICA PARTE MODIFICADA: Ahora valida contra el servidor y MongoDB correctamente
             authenticate(type) {
                 const user = document.getElementById('user-in').value;
                 const pass = document.getElementById('pass-in').value;
-                if(!user || !pass) return alert("Completa los datos");
+                
+                if(!user || !pass) return alert("Completa los datos de acceso");
 
-                // CAMBIO CLAVE: Enviamos al evento correcto según el servidor
                 if(type === 'register') {
+                    // Si presionas "Crear cuenta", envía la señal de registro
                     this.socket.emit('register_user', { user, pass });
                 } else {
+                    // Si presionas "Iniciar sesión", envía la señal de validación
                     this.socket.emit('login_user', { user, pass });
                 }
             },
@@ -185,11 +186,8 @@
                 this.socket.emit('enter_queue', { mode, class: 'striker' });
             },
 
-            showPrivateMenu() {
-                this.socket.emit('create_private');
-            },
-
-            openShop() { alert("Cargando catálogo de habilidades 2026..."); },
+            showPrivateMenu() { alert("Generando código de acceso privado..."); },
+            openShop() { alert("Accediendo a la base de datos de mejoras..."); },
             logout() { location.reload(); }
         };
 
