@@ -6,6 +6,7 @@
     <title>GEO-BATTLE ROYAL 2026</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
+        /* MANTENGO TODOS TUS ESTILOS ORIGINALES INTACTOS */
         :root {
             --neon-primary: #00f3ff;
             --neon-accent:  #ff00c8;
@@ -17,7 +18,6 @@
         * { box-sizing: border-box; font-family: 'Rajdhani', sans-serif; cursor: none; margin: 0; padding: 0; }
         body, html { width: 100%; height: 100%; background: var(--bg-deep); overflow: hidden; color: #fff; }
 
-        /* ── CURSOR ── */
         #custom-cursor {
             position: fixed; width: 20px; height: 20px;
             border: 2px solid var(--neon-primary); border-radius: 50%;
@@ -26,10 +26,8 @@
             transform: translate(-50%,-50%);
         }
 
-        /* ── CANVAS ── */
         #gameCanvas { display: block; position: fixed; top: 0; left: 0; }
 
-        /* ── PANTALLAS ── */
         .screen {
             position: fixed; width: 100%; height: 100%;
             display: none; justify-content: center; align-items: center;
@@ -39,7 +37,6 @@
         .screen.active { display: flex; animation: fadeIn 0.6s ease; }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
-        /* ── PANEL ── */
         .panel {
             background: var(--glass); border: 1px solid var(--neon-primary);
             padding: 2.5rem; border-radius: 20px; width: 460px; text-align: center;
@@ -50,7 +47,6 @@
             margin-bottom: 1.5rem; color: var(--neon-primary);
         }
 
-        /* ── INPUTS / BOTONES ── */
         .input-box {
             width: 100%; padding: 12px; margin: 8px 0;
             background: rgba(0,0,0,0.4); border: 1px solid #333;
@@ -68,12 +64,10 @@
         .btn.sec  { background: transparent; border: 1px solid var(--neon-accent); color: var(--neon-accent); }
         .btn.sec:hover { background: var(--neon-accent); color: #000; }
 
-        /* ── MENSAJE AUTH ── */
         #auth-message { margin-top:12px; padding:10px; border-radius:5px; display:none; }
         #auth-message.error   { background:rgba(255,50,50,0.2); border:1px solid #f44; color:#f88; display:block; }
         #auth-message.success { background:rgba(0,255,136,0.15); border:1px solid var(--neon-success); color:var(--neon-success); display:block; }
 
-        /* ── LOBBY ── */
         #screen-lobby { flex-direction: column; gap: 18px; }
         .lobby-header h1 { font-family:'Orbitron'; font-size:1.8rem; color:var(--neon-primary); }
         .lobby-sub { color: var(--neon-accent); font-size:1rem; }
@@ -90,7 +84,6 @@
         .mode-card h3 { font-family:'Orbitron'; font-size:0.85rem; color:var(--neon-primary); margin-bottom:6px; }
         .mode-card p  { font-size:0.82rem; color:#aaa; }
 
-        /* ── COLA ── */
         #screen-loading { flex-direction:column; }
         #loading-text   { animation:pulse 1.5s infinite; margin-bottom:0.4rem; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
@@ -114,13 +107,11 @@
         }
         #countdown-msg { font-size:0.82rem; color:#666; margin-top:6px; }
 
-        /* ── HUD EN PARTIDA ── */
         #screen-game-ui {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; pointer-events: none; z-index: 30;
         }
 
-        /* Barra de vida — inferior izquierda */
         #hud-hp {
             position:absolute; bottom:24px; left:110px;
             display:flex; flex-direction:column; gap:4px; min-width:180px;
@@ -130,7 +121,6 @@
         #hud-hp-fill  { height:100%; width:100%; background:var(--neon-success); transition:width 0.2s, background 0.3s; border-radius:6px; }
         #hud-hp-text  { font-size:0.85rem; color:#ccc; }
 
-        /* Jugadores vivos — superior centro */
         #hud-alive-box {
             position:absolute; top:16px; left:50%; transform:translateX(-50%);
             background:rgba(0,0,0,0.6); border:1px solid var(--neon-primary);
@@ -139,7 +129,6 @@
         #hud-alive-label { font-family:'Orbitron'; font-size:0.65rem; color:#aaa; letter-spacing:2px; }
         #hud-alive       { font-family:'Orbitron'; font-size:1.6rem; color:var(--neon-primary); }
 
-        /* Kills propios — superior izquierda */
         #hud-kills-box {
             position:absolute; top:16px; left:16px;
             background:rgba(0,0,0,0.6); border:1px solid var(--neon-accent);
@@ -148,7 +137,6 @@
         #hud-kills-label { font-family:'Orbitron'; font-size:0.65rem; color:#aaa; letter-spacing:2px; }
         #hud-kills       { font-family:'Orbitron'; font-size:1.4rem; color:var(--neon-accent); }
 
-        /* Habilidad — inferior izquierda (dibujada en canvas, solo etiqueta de forma aquí) */
         #hud-shape-box {
             position:absolute; bottom:130px; left:16px;
             background:rgba(0,0,0,0.5); border:1px solid #333;
@@ -156,7 +144,6 @@
         }
         #hud-shape-name { font-family:'Orbitron'; font-size:0.75rem; color:var(--neon-warn); }
 
-        /* Tabla de kills — derecha (encima del minimapa) */
         #hud-kills-table {
             position:absolute; top:200px; right:16px;
             background:rgba(0,0,0,0.65); border:1px solid #222;
@@ -169,20 +156,17 @@
         #kills-table-body td { padding:3px 10px; font-size:0.82rem; }
         #kills-table-body tr td:last-child { color:var(--neon-accent); text-align:right; }
 
-        /* Controles — esquina inferior derecha */
         #hud-controls {
             position:absolute; bottom:16px; right:200px;
             color:rgba(255,255,255,0.3); font-size:0.78rem; text-align:right; line-height:1.6;
         }
 
-        /* ── PANTALLA DE MUERTE ── */
         #screen-dead { flex-direction:column; }
         #screen-dead .panel { border-color: var(--neon-accent); }
         #screen-dead h1 { color: var(--neon-accent); }
         .dead-stat { font-size:1.1rem; color:#ccc; margin:6px 0; }
         .dead-stat span { color:var(--neon-primary); font-family:'Orbitron'; font-size:1.3rem; }
 
-        /* ── PANTALLA FINAL / VICTORIA ── */
         #screen-victory { flex-direction:column; }
         #screen-victory .panel { width:520px; border-color:var(--neon-success); }
         #end-title   { font-family:'Orbitron'; font-size:2rem; margin-bottom:0.5rem; }
@@ -198,7 +182,6 @@
 <div id="custom-cursor"></div>
 <canvas id="gameCanvas"></canvas>
 
-<!-- ── AUTENTICACIÓN ── -->
 <div id="screen-auth" class="screen active">
     <div class="panel">
         <h1>SISTEMA_GEO</h1>
@@ -210,7 +193,6 @@
     </div>
 </div>
 
-<!-- ── LOBBY ── -->
 <div id="screen-lobby" class="screen">
     <div class="lobby-header">
         <h1>BIENVENIDO, <span id="player-name" style="color:var(--neon-success)">PILOTO</span></h1>
@@ -241,14 +223,8 @@
             <p>Desconectar del núcleo.</p>
         </div>
     </div>
-    <div style="color:#444;font-size:0.8rem;margin-top:8px;">
-        🟢 Formas: <span style="color:#00f3ff">Círculo = Escudo</span> &nbsp;|&nbsp;
-        <span style="color:#ff00c8">Cuadrado = Dash</span> &nbsp;|&nbsp;
-        <span style="color:#00ff88">Triángulo = Ráfaga</span>
-    </div>
 </div>
 
-<!-- ── COLA ── -->
 <div id="screen-loading" class="screen">
     <div class="panel">
         <h1 id="loading-text">BUSCANDO PILOTOS...</h1>
@@ -268,33 +244,23 @@
     </div>
 </div>
 
-<!-- ── HUD EN PARTIDA ── -->
 <div id="screen-game-ui">
-    <!-- Jugadores vivos -->
     <div id="hud-alive-box">
         <div id="hud-alive-label">VIVOS</div>
         <div id="hud-alive">—</div>
     </div>
-
-    <!-- Kills propios -->
     <div id="hud-kills-box">
         <div id="hud-kills-label">KILLS</div>
         <div id="hud-kills">0</div>
     </div>
-
-    <!-- HP -->
     <div id="hud-hp">
         <div id="hud-hp-label">ESCUDO VITAL</div>
         <div id="hud-hp-bar"><div id="hud-hp-fill"></div></div>
         <div id="hud-hp-text">100 / 100</div>
     </div>
-
-    <!-- Forma / habilidad -->
     <div id="hud-shape-box">
         <div id="hud-shape-name">—</div>
     </div>
-
-    <!-- Tabla kills -->
     <div id="hud-kills-table">
         <div class="table-header">TOP PILOTOS</div>
         <table>
@@ -302,8 +268,6 @@
             <tbody id="kills-table-body"></tbody>
         </table>
     </div>
-
-    <!-- Controles -->
     <div id="hud-controls">
         WASD / ↑↓←→ Mover<br>
         CLICK Disparar<br>
@@ -311,7 +275,6 @@
     </div>
 </div>
 
-<!-- ── MUERTE ── -->
 <div id="screen-dead" class="screen" style="display:none">
     <div class="panel">
         <h1>ELIMINADO</h1>
@@ -321,12 +284,11 @@
     </div>
 </div>
 
-<!-- ── VICTORIA / FIN ── -->
 <div id="screen-victory" class="screen" style="display:none">
     <div class="panel">
         <div id="end-title">FIN DE PARTIDA</div>
         <p id="end-winner-row">Ganador: <span id="end-winner">—</span></p>
-        <table>
+        <table id="end-table">
             <thead><tr><th>POS</th><th>PILOTO</th><th>KILLS</th></tr></thead>
             <tbody id="end-ranking-body"></tbody>
         </table>
@@ -335,17 +297,18 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+
 <script>
 const COUNTDOWN_TOTAL = 17;
 
-const app = {
-    socket: null,
-    user:   null,
+// Redefinimos el objeto app para que no cree su propio socket, sino que use el de app.js
+const uiApp = {
+    user: null,
 
     init() {
-        this.socket = io();
-        this.setupEvents();
         this.initCursor();
+        this.setupEvents();
     },
 
     initCursor() {
@@ -357,7 +320,10 @@ const app = {
     },
 
     setupEvents() {
-        this.socket.on('auth_result', res => {
+        // Usamos el socket que ya está declarado en app.js
+        if (!socket) return;
+
+        socket.on('auth_result', res => {
             if (res.success) {
                 if (res.user) {
                     this.user = res.user;
@@ -374,7 +340,7 @@ const app = {
             }
         });
 
-        this.socket.on('queue_status', data => {
+        socket.on('queue_status', data => {
             document.getElementById('queue-count').innerText = `Jugadores en cola: ${data.players}`;
             const wrap = document.getElementById('countdown-wrap');
             if (data.counting && data.players >= 2) {
@@ -385,8 +351,10 @@ const app = {
             }
         });
 
-        this.socket.on('private_ready', data => {
-            alert(`Sala creada. Código: ${data.code}`);
+        socket.on('match_start', () => {
+            console.log("UI: Partida detectada, ocultando menús...");
+            this.switchScreen(null); // Oculta todos los menús
+            document.getElementById('screen-game-ui').style.display = 'block';
         });
     },
 
@@ -410,49 +378,48 @@ const app = {
         const user = document.getElementById('user-in').value.trim();
         const pass = document.getElementById('pass-in').value.trim();
         if (!user || !pass) return this.showMsg("Completa todos los campos.", 'error');
-        const el = document.getElementById('auth-message');
-        el.className = ''; el.textContent = '';
-        this.socket.emit(type === 'login' ? 'login_user' : 'register_user', { user, pass });
+        socket.emit(type === 'login' ? 'login_user' : 'register_user', { user, pass });
     },
 
     switchScreen(id) {
         document.querySelectorAll('.screen').forEach(s => {
             s.classList.remove('active');
-            s.style.display = '';
+            s.style.display = 'none';
         });
         if (id) {
             const t = document.getElementById(id);
-            if (t) t.classList.add('active');
+            if (t) {
+                t.classList.add('active');
+                t.style.display = 'flex';
+            }
         }
     },
 
     joinQueue() {
         this.switchScreen('screen-loading');
-        document.getElementById('queue-count').innerText = 'Jugadores en cola: 1';
-        document.getElementById('countdown-wrap').classList.remove('visible');
-        this.socket.emit('enter_queue');
+        socket.emit('enter_queue');
     },
 
     cancelQueue() {
-        this.socket.emit('leave_queue');
+        socket.emit('leave_queue');
         this.switchScreen('screen-lobby');
     },
 
     backToLobby() {
-        ['screen-dead','screen-victory'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
-        });
+        document.getElementById('screen-dead').style.display = 'none';
+        document.getElementById('screen-victory').style.display = 'none';
+        document.getElementById('screen-game-ui').style.display = 'none';
         this.switchScreen('screen-lobby');
     },
 
-    showPrivateMenu() { this.socket.emit('create_private'); },
+    showPrivateMenu() { socket.emit('create_private'); },
     openShop()        { alert("Tienda próximamente..."); },
     logout()          { location.reload(); }
 };
 
-app.init();
+// Sobrescribimos el acceso global para que los onclick funcionen
+window.app = uiApp;
+uiApp.init();
 </script>
-<script src="app.js"></script>
 </body>
 </html>
