@@ -152,8 +152,12 @@
                         this.switchScreen('screen-lobby');
                         document.getElementById('player-name').innerText = this.user.username;
                     } else {
-                        alert("Error de autenticación: " + res.message);
+                        alert(res.message);
                     }
+                });
+
+                this.socket.on('private_ready', (data) => {
+                    alert("CÓDIGO DE SALA: " + data.code);
                 });
             },
 
@@ -161,12 +165,19 @@
                 const user = document.getElementById('user-in').value;
                 const pass = document.getElementById('pass-in').value;
                 if(!user || !pass) return alert("Completa los datos");
-                this.socket.emit('auth_request', { type, user, pass });
+
+                // CAMBIO CLAVE: Enviamos al evento correcto según el servidor
+                if(type === 'register') {
+                    this.socket.emit('register_user', { user, pass });
+                } else {
+                    this.socket.emit('login_user', { user, pass });
+                }
             },
 
             switchScreen(id) {
                 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-                document.getElementById(id).classList.add('active');
+                const target = document.getElementById(id);
+                if(target) target.classList.add('active');
             },
 
             joinQueue(mode) {
@@ -174,8 +185,10 @@
                 this.socket.emit('enter_queue', { mode, class: 'striker' });
             },
 
-            // Stubs para expansión
-            showPrivateMenu() { alert("Generando código de sala privada..."); },
+            showPrivateMenu() {
+                this.socket.emit('create_private');
+            },
+
             openShop() { alert("Cargando catálogo de habilidades 2026..."); },
             logout() { location.reload(); }
         };
