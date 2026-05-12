@@ -618,13 +618,22 @@ const G = (() => {
     socket.on('disconnect', () => toast('Desconectado del servidor. Reconectando...', 'err'));
     socket.on('connect',    () => { if (user) toast('Reconectado ✓', 'ok'); });
  });
-  // --- ESTO ES LO QUE DEBES AGREGAR ---
-    socket.on('round_ready', data => {
-      // 1. Detenemos el motor del minijuego para que deje de renderizar
-      if (mgEngine) {
-        mgEngine.stop();
-        mgEngine = null;
-      }
+ socket.on('round_ready', data => {
+  // Usamos window.mgEngine o verificamos si está definida para que no truene
+  if (typeof mgEngine !== 'undefined' && mgEngine) {
+    mgEngine.stop();
+    mgEngine = null;
+  }
+
+  currentGame.players = data.players;
+  
+  if (boardRender) {
+    boardRender.setPlayers(data.players);
+  }
+
+  showScreen('screen-game');
+  updateTurnUI(data.activePlayer);
+});
 
       // 2. Actualizamos los datos de los jugadores (por si ganaron bananas)
       currentGame.players = data.players;
