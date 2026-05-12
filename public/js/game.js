@@ -618,11 +618,11 @@ const G = (() => {
     socket.on('disconnect', () => toast('Desconectado del servidor. Reconectando...', 'err'));
     socket.on('connect',    () => { if (user) toast('Reconectado ✓', 'ok'); });
  });
- socket.on('round_ready', data => {
-  // Usamos window.mgEngine o verificamos si está definida para que no truene
-  if (typeof mgEngine !== 'undefined' && mgEngine) {
-    mgEngine.stop();
-    mgEngine = null;
+socket.on('round_ready', data => {
+  // Accedemos a mgEngine de forma segura a través de G o verificamos si existe
+  if (typeof G !== 'undefined' && G.mgEngine) {
+    G.mgEngine.stop();
+    G.mgEngine = null;
   }
 
   currentGame.players = data.players;
