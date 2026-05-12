@@ -1,6 +1,9 @@
 // ── RENDERIZADOR DEL TABLERO ──────────────────────────────────────────────────
 class BoardRenderer {
   constructor(canvasId) {
+    setPlayers(players) {
+    this.players = players;
+  }
     this.canvas = document.getElementById(canvasId);
     this.ctx    = this.canvas.getContext('2d');
     this.board  = [];
