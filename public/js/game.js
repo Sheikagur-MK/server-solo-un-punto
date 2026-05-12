@@ -617,7 +617,31 @@ const G = (() => {
 
     socket.on('disconnect', () => toast('Desconectado del servidor. Reconectando...', 'err'));
     socket.on('connect',    () => { if (user) toast('Reconectado ✓', 'ok'); });
-  }
+ });
+  // --- ESTO ES LO QUE DEBES AGREGAR ---
+    socket.on('round_ready', data => {
+      // 1. Detenemos el motor del minijuego para que deje de renderizar
+      if (mgEngine) {
+        mgEngine.stop();
+        mgEngine = null;
+      }
+
+      // 2. Actualizamos los datos de los jugadores (por si ganaron bananas)
+      currentGame.players = data.players;
+      
+      // 3. Refrescamos el tablero con las nuevas posiciones/puntos
+      if (boardRender) {
+        boardRender.setPlayers(data.players);
+      }
+
+      // 4. Quitamos la pantalla del minijuego y volvemos al tablero
+      showScreen('screen-game');
+
+      // 5. Actualizamos de quién es el turno (normalmente el jugador 1 de nuevo)
+      updateTurnUI(data.activePlayer);
+      
+      console.log(">>> Ronda lista. Volviendo al tablero...");
+      }
 
   // ── API PÚBLICA ───────────────────────────────────────────
   return {
