@@ -501,14 +501,40 @@ io.on('connection', socket => {
     if (socket.currentGame) buyStarBanana(socket.currentGame, socket.id);
   });
 
-  socket.on('minigame_result', (results) => {
-    // Solo el host (primer jugador) puede enviar resultados del minijuego
-    if (!socket.currentGame) return;
-    const game = games[socket.currentGame];
+  socket.on('minigame_ended', async (data) => {
+    const gameId = socket.currentGame;
+    const game = games[gameId];
     if (!game) return;
-    const playerIds = Object.keys(game.players);
-    if (playerIds[0] === socket.id) {  // solo el host
-      resolveMinigame(socket.currentGame, results);
+
+    // Evita procesar los resultados más de una vez si varios jugadores terminan a la vez
+    if (game.processingResults) return;
+    game.processingResults = true;
+
+    try {
+      const results = data.results; 
+      
+      // 1. Actualización de palmeras usando $inc (esto asegura que se sumen en la DB)
+      if (results[0]) {
+        await User.updateOne({ _id: results[0].id }, { $inc: { palmeras: 10 } });
+        if (game.players[results[0].id]) game.players[results[0].id].palmeras += 10;
+      }
+      if (results[1]) {
+        await User.updateOne({ _id: results[1].id }, { $inc: { palmeras: 5 } });
+        if (game.players[results[1].id]) game.players[results[1].id].palmeras += 5;
+      }
+
+      game.processingResults = false;
+      game.turnIndex = 0; // Reiniciamos el turno para que el flujo continúe
+
+      // 2. LA LÍNEA CLAVE: Emitir round_ready para desbloquear las pantallas
+      io.to(gameId).emit('round_ready', {
+        players: game.players,
+        activePlayer: Object.keys(game.players)[0]
+      });
+
+    } catch (e) {
+      console.error("Error en minigame_ended:", e);
+      game.processingResults = false;
     }
   });
 
