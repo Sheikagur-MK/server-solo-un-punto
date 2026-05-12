@@ -619,20 +619,32 @@ const G = (() => {
     socket.on('connect',    () => { if (user) toast('Reconectado ✓', 'ok'); });
 
 socket.on('round_ready', data => {
-  // Accedemos a mgEngine de forma segura a través de G o verificamos si existe
-  if (typeof G !== 'undefined' && G.mgEngine) {
-    G.mgEngine.stop();
-    G.mgEngine = null;
+  // 1. Detener minijuego de forma segura
+  if (typeof mgEngine !== 'undefined' && mgEngine) {
+    mgEngine.stop();
+    mgEngine = null;
   }
 
+  // 2. Actualizar datos globales (Importante para los puntos)
   currentGame.players = data.players;
   
+  // 3. Actualizar el render si existe, si es null no pasa nada (evita el error)
   if (boardRender) {
-    boardRender.setPlayers(data.players);
+    boardRender.players = data.players;
   }
 
+  // 4. Volver a la pantalla y REFRESCAR la UI
   showScreen('screen-game');
   updateTurnUI(data.activePlayer);
+  
+  // --- AGREGA ESTO PARA VER TUS PUNTOS ACTUALIZADOS ---
+  if (user && data.players[socket.id]) {
+    user.palmeras = data.players[socket.id].palmeras;
+    const palmerasEl = document.getElementById('u-palmeras');
+    if (palmerasEl) palmerasEl.textContent = user.palmeras;
+  }
+  
+  console.log(">>> Ronda terminada. Puntos actualizados.");
 });
 
       // 2. Actualizamos los datos de los jugadores (por si ganaron bananas)
