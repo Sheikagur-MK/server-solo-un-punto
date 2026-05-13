@@ -1,39 +1,123 @@
-// ── ANIMALES ─────────────────────────────────────────────────────────────────
+// ── CONFIGURACIÓN DE PERSONAJES Y SKINS ──────────────────────────────────────
+
+// 1. Base de Datos de Animales (Estadísticas visuales y descripciones)
 const ANIMALS_DATA = {
-  leon:     { name: 'León',     emoji: '🦁', color: '#F4A460', desc: 'El rey de la sabana. Poderoso y majestuoso.' },
-  gorila:   { name: 'Gorila',   emoji: '🦍', color: '#708090', desc: 'Fuerza bruta y gran inteligencia.' },
-  oso:      { name: 'Oso',      emoji: '🐻', color: '#8B4513', desc: 'Gran resistencia en clima extremo.' },
-  pinguino: { name: 'Pingüino', emoji: '🐧', color: '#2F4F4F', desc: 'Pequeño pero ágil en el agua.' },
-  tiburon:  { name: 'Tiburón',  emoji: '🦈', color: '#5F9EA0', desc: 'El depredador perfecto del océano.' },
-  orca:     { name: 'Orca',     emoji: '🐋', color: '#191970', desc: 'Inteligente y veloz cazador marino.' },
-  elefante: { name: 'Elefante', emoji: '🐘', color: '#808080', desc: 'Memoria prodigiosa e imparable.' },
-  girafa:   { name: 'Jirafa',   emoji: '🦒', color: '#DAA520', desc: 'La más alta de la sabana.' },
-  perro:    { name: 'Perro',    emoji: '🐶', color: '#D2691E', desc: 'El mejor amigo, siempre leal.' },
-  gato:     { name: 'Gato',     emoji: '🐱', color: '#BC8F8F', desc: 'Ágil e impredecible.' },
-  hamster:  { name: 'Hámster',  emoji: '🐹', color: '#FFD39B', desc: 'Pequeño e increíblemente rápido.' },
-  lobo:     { name: 'Lobo',     emoji: '🐺', color: '#778899', desc: 'Líder del manada, estratega nato.' }
+  leon: { 
+    name: 'León',     
+    emoji: '🦁', 
+    color: '#F4A460', 
+    desc: 'El rey de la sabana. Poderoso y equilibrado.' 
+  },
+  gorila: { 
+    name: 'Gorila',   
+    emoji: '🦍', 
+    color: '#708090', 
+    desc: 'Fuerza bruta y gran inteligencia para los retos.' 
+  },
+  oso: { 
+    name: 'Oso',      
+    emoji: '🐻', 
+    color: '#8B4513', 
+    desc: 'Resistente y siempre listo para la aventura.' 
+  },
+  pinguino: { 
+    name: 'Pingüino', 
+    emoji: '🐧', 
+    color: '#2F4F4F', 
+    desc: 'Pequeño, rápido y experto en minijuegos de hielo.' 
+  },
+  tiburon: { 
+    name: 'Tiburón',  
+    emoji: '🦈', 
+    color: '#5F9EA0', 
+    desc: 'El depredador más veloz del tablero marino.' 
+  },
+  zorro: { 
+    name: 'Zorro',    
+    emoji: '🦊', 
+    color: '#FF8C00', 
+    desc: 'Astuto y veloz, ideal para esquivar peligros.' 
+  },
+  rana: { 
+    name: 'Rana',     
+    emoji: '🐸', 
+    color: '#32CD32', 
+    desc: 'Gran capacidad de salto en casillas especiales.' 
+  },
+  elefante: { 
+    name: 'Elefante', 
+    emoji: '🐘', 
+    color: '#A9A9A9', 
+    desc: 'Imparable y con una memoria legendaria.' 
+  }
 };
 
-// Skins disponibles (100 palmeras c/u)
-const SKINS_DATA = [
-  { id: 'default',   name: 'Default',      emoji: '⚪', price: 0,   desc: 'El look original' },
-  { id: 'golden',    name: 'Dorado',       emoji: '🌟', price: 100, desc: 'Brilla como el oro' },
-  { id: 'neon',      name: 'Neón',         emoji: '💜', price: 100, desc: 'Resplandece en la oscuridad' },
-  { id: 'pixel',     name: 'Píxel',        emoji: '👾', price: 100, desc: 'Estilo retro 8-bit' },
-  { id: 'fire',      name: 'Fuego',        emoji: '🔥', price: 100, desc: 'ábrasador' },
-  { id: 'ice',       name: 'Hielo',        emoji: '❄️', price: 100, desc: 'Frío como el ártico' },
-  { id: 'rainbow',   name: 'Arcoíris',     emoji: '🌈', price: 100, desc: 'Todos los colores' },
-  { id: 'shadow',    name: 'Sombra',       emoji: '🌑', price: 100, desc: 'Misterioso y oscuro' },
-  { id: 'cyber',     name: 'Cyber',        emoji: '🤖', price: 100, desc: 'Del futuro' },
-  { id: 'tropical',  name: 'Tropical',     emoji: '🌺', price: 100, desc: 'Colores de la selva' },
-  { id: 'galaxy',    name: 'Galaxia',      emoji: '🌌', price: 100, desc: 'Del universo' },
-  { id: 'candy',     name: 'Dulce',        emoji: '🍭', price: 100, desc: 'Colorido y dulce' },
+// 2. Catálogo de Skins (Tienda y Personalización)
+const SKINS_CATALOG = [
+  { 
+    id: 'default',   
+    name: 'Original',     
+    emoji: '⚪', 
+    price: 0,   
+    desc: 'El aspecto clásico de tu animal.' 
+  },
+  { 
+    id: 'golden',    
+    name: 'Dorado',       
+    emoji: '🌟', 
+    price: 500, 
+    desc: 'Brilla como el oro puro en el tablero.' 
+  },
+  { 
+    id: 'neon',      
+    name: 'Cyber Neon',   
+    emoji: '💜', 
+    price: 350, 
+    desc: 'Resplandece con luces led en la oscuridad.' 
+  },
+  { 
+    id: 'pixel',     
+    name: 'Retro 8-Bit',  
+    emoji: '👾', 
+    price: 200, 
+    desc: 'Un estilo clásico de consola antigua.' 
+  },
+  { 
+    id: 'fire',      
+    name: 'Fuego Vivo',   
+    emoji: '🔥', 
+    price: 400, 
+    desc: 'Efectos de llamas al caminar por las casillas.' 
+  },
+  { 
+    id: 'ice',       
+    name: 'Cero Grados',  
+    emoji: '❄️', 
+    price: 300, 
+    desc: 'Frío como el ártico, deja un rastro de escarcha.' 
+  },
+  { 
+    id: 'galaxy',    
+    name: 'Galáctico',    
+    emoji: '🌌', 
+    price: 600, 
+    desc: 'Contiene el misterio del universo entero.' 
+  }
 ];
 
-// Modifica el color del emoji según la skin
-function getAnimalDisplay(animalKey, skin = 'default') {
-  const a = ANIMALS_DATA[animalKey];
-  if (!a) return { emoji: '🐾', name: 'Desconocido', color: '#888' };
-  const skinData = SKINS_DATA.find(s => s.id === skin) || SKINS_DATA[0];
-  return { ...a, skinEmoji: skinData.emoji, skinName: skinData.name };
+// 3. Helper para obtener los datos completos de un jugador
+const getPlayerData = (animalKey, skinId) => {
+  const base = ANIMALS_DATA[animalKey] || ANIMALS_DATA.leon;
+  const skin = SKINS_CATALOG.find(s => s.id === skinId) || SKINS_CATALOG[0];
+  
+  return {
+    ...base,
+    activeSkin: skin.id,
+    displayEmoji: skinId === 'default' ? base.emoji : skin.emoji
+  };
+};
+
+// Exportar para Node.js si es necesario, o dejar global para el navegador
+if (typeof module !== 'undefined') {
+  module.exports = { ANIMALS_DATA, SKINS_CATALOG };
 }
