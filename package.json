@@ -1,23 +1,12 @@
 {
-  "name": "banana-party-online",
-  "version": "1.0.0",
-  "description": "Mario Party style .io game with animals",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
+  "name": "brawl-party-hg",
+  "version": "2.0.0",
+  "main": "server_v2.js",
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.7.2",
     "mongoose": "^8.0.0",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.3.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
