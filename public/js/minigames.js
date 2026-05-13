@@ -1,79 +1,153 @@
-// ── MOTOR DE MINIJUEGOS ISOMÉTRICO ───────────────────────────────────────────
-class MiniGameEngine {
-  constructor(canvasId, socket, selfId) {
+// ── MOTOR DE MINIJUEGOS BANANA PARTY HG ──────────────────────────────────────
+
+const MINIGAMES_LIST = [
+  { id:1,  name:'¡Lluvia de Bananas!',   type:'catch',   dur:20, desc:'Atrapa las bananas, evita las rocas.' },
+  { id:2,  name:'Esquiva el Rayo',       type:'dodge',   dur:20, desc:'No dejes que los rayos te toquen.' },
+  { id:3,  name:'Carrera a la Meta',     type:'race',    dur:25, desc:'Pulsa RÁPIDO para correr.' },
+  { id:4,  name:'Globos Locos',          type:'tap',     dur:15, desc:'Explota más globos que nadie.' },
+  { id:5,  name:'¡No te Quemes!',        type:'jump',    dur:20, desc:'Salta cuando el suelo cambie a lava.' },
+  // ... se pueden añadir los otros 15 aquí
+];
+
+class MinigameEngine {
+  constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
-    this.ctx = this.canvas.getContext('2d');
-    this.socket = socket;
+    this.ctx    = this.canvas.getContext('2d');
+    this.active = false;
+    this.players = {};
+    this.objects = []; // Bananas, rayos, etc.
+    this.timer   = 0;
+    this.selfId  = null;
+    this.type    = '';
+    
+    this._init();
+  }
+
+  _init() {
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+  }
+
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.W = this.canvas.width;
+    this.H = this.canvas.height;
+  }
+
+  start(data, selfId) {
+    this.type = data.type;
+    this.timer = data.dur;
     this.selfId = selfId;
-    this.joystick = { active: false, x: 0, y: 0 };
-    this._initControls();
+    this.players = data.players;
+    this.objects = [];
+    this.active = true;
+    
+    // Inicializar posiciones locales
+    Object.keys(this.players).forEach(id => {
+      this.players[id].x = this.W / 2;
+      this.players[id].y = this.H - 80;
+      this.players[id].score = 0;
+    });
+
+    this.loop();
   }
 
-  // Transformación de coordenadas para efecto 3D
-  toIso(x, y) {
-    return {
-      isoX: (x - y) * 0.8 + (this.canvas.width / 2),
-      isoY: (x + y) * 0.4 + (this.canvas.height / 5)
-    };
+  updateData(serverData) {
+    // Sincroniza posiciones y estados desde el servidor
+    if (!this.active) return;
+    this.objects = serverData.objects || [];
+    this.timer = serverData.timer;
+    
+    Object.keys(serverData.players).forEach(id => {
+      if (this.players[id]) {
+        this.players[id].score = serverData.players[id].score;
+        if (id !== this.selfId) {
+          this.players[id].x = serverData.players[id].x * this.W;
+          this.players[id].y = serverData.players[id].y * this.H;
+        }
+      }
+    });
   }
 
-  render(gameState) {
+  draw() {
     const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.clearRect(0, 0, this.W, this.H);
 
-    // Dibujar suelo con rejilla estilizada
-    this._drawGrid();
+    // Fondo según el tipo de juego
+    this._drawBackground();
 
-    Object.values(gameState.players).forEach(p => {
-      const pos = this.toIso(p.x, p.y);
-      
-      // Sombra proyectada
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    // Dibujar Objetos (Bananas, Obstáculos)
+    this.objects.forEach(obj => {
+      ctx.font = "30px Arial";
+      ctx.fillText(obj.item === 'bad' ? '💣' : '🍌', obj.x * this.W, obj.y * this.H);
+    });
+
+    // Dibujar Jugadores
+    Object.keys(this.players).forEach(id => {
+      const p = this.players[id];
+      this._renderPlayer(p, id === this.selfId);
+    });
+
+    // Interfaz (UI)
+    this._drawUI();
+  }
+
+  _renderPlayer(p, isMe) {
+    const animal = ANIMALS_DATA[p.skin] || ANIMALS_DATA['leon'];
+    const ctx = this.ctx;
+
+    // Indicador de "Tú"
+    if (isMe) {
+      ctx.fillStyle = 'yellow';
       ctx.beginPath();
-      ctx.ellipse(pos.isoX, pos.isoY + 5, 22, 11, 0, 0, Math.PI*2);
+      ctx.moveTo(p.x, p.y - 60);
+      ctx.lineTo(p.x - 5, p.y - 70);
+      ctx.lineTo(p.x + 5, p.y - 70);
       ctx.fill();
-
-      // Personaje con emoji
-      ctx.font = '48px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(p.animalEmoji, pos.isoX, pos.isoY);
-
-      // Nombre y Score
-      ctx.font = 'bold 14px sans-serif';
-      ctx.fillStyle = 'white';
-      ctx.fillText(`${p.username}: ${p.score}`, pos.isoX, pos.isoY - 50);
-    });
-  }
-
-  _drawGrid() {
-    const ctx = this.ctx;
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    for(let i=0; i<=600; i+=60) {
-      let s1 = this.toIso(i, 0), e1 = this.toIso(i, 600);
-      let s2 = this.toIso(0, i), e2 = this.toIso(600, i);
-      ctx.beginPath(); ctx.moveTo(s1.isoX, s1.isoY); ctx.lineTo(e1.isoX, e1.isoY); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(s2.isoX, s2.isoY); ctx.lineTo(e2.isoX, e2.isoY); ctx.stroke();
     }
+
+    ctx.font = "45px serif";
+    ctx.textAlign = "center";
+    ctx.fillText(animal.emoji, p.x, p.y);
+
+    ctx.font = "bold 14px Arial";
+    ctx.fillStyle = "white";
+    ctx.fillText(p.username, p.x, p.y + 20);
+    ctx.fillStyle = "#FFD700";
+    ctx.fillText(p.score, p.x, p.y + 35);
   }
 
-  _initControls() {
-    this.canvas.addEventListener('touchstart', e => {
-      const t = e.touches[0];
-      this.joystick = { active: true, startX: t.clientX, startY: t.clientY };
-    });
+  _drawBackground() {
+    const grad = this.ctx.createLinearGradient(0, 0, 0, this.H);
+    if (this.type === 'catch') { grad.addColorStop(0, '#1a2a6c'); grad.addColorStop(1, '#b21f1f'); }
+    else { grad.addColorStop(0, '#0f0c29'); grad.addColorStop(1, '#24243e'); }
+    this.ctx.fillStyle = grad;
+    this.ctx.fillRect(0, 0, this.W, this.H);
+  }
 
-    this.canvas.addEventListener('touchmove', e => {
-      if (!this.joystick.active) return;
-      const t = e.touches[0];
-      const dx = t.clientX - this.joystick.startX;
-      const dy = t.clientY - this.joystick.startY;
-      const angle = Math.atan2(dy, dx);
-      this.socket.emit('mg_move', { angle, force: 1 });
-    });
+  _drawUI() {
+    // Cronómetro
+    this.ctx.fillStyle = "white";
+    this.ctx.font = "bold 30px Arial";
+    this.ctx.fillText(`⏱ ${Math.ceil(this.timer)}s`, this.W / 2, 50);
 
-    this.canvas.addEventListener('touchend', () => {
-      this.joystick.active = false;
-      this.socket.emit('mg_move', { angle: 0, force: 0 });
+    // Leaderboard pequeño a la derecha
+    const sorted = Object.values(this.players).sort((a, b) => b.score - a.score);
+    sorted.forEach((p, i) => {
+      this.ctx.font = "16px Arial";
+      this.ctx.textAlign = "right";
+      this.ctx.fillText(`${p.username}: ${p.score}`, this.W - 20, 30 + (i * 25));
     });
+  }
+
+  loop() {
+    if (!this.active) return;
+    this.draw();
+    requestAnimationFrame(() => this.loop());
+  }
+
+  stop() {
+    this.active = false;
   }
 }
