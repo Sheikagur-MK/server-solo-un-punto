@@ -1,22 +1,43 @@
 class BoardRender {
   constructor(canvas, boardData) {
+    if (!canvas) return;
     this.ctx = canvas.getContext('2d');
-    this.board = boardData;
-    this._totalW = canvas.width;
-    this._BIOME_EMOJI = { forest: '🌲', desert: '🌵', ice: '❄️', volcano: '🌋' }; // Ajusta según tus biomas
+    this.canvas = canvas;
+    this.W = canvas.width;
+    this.H = canvas.height;
+    this.board = boardData || [];
+    this._totalW = this.W;
+    
+    // Configuración de Biomas (Esto es lo que te faltaba)
+    this._BIOME_BG = {
+      forest: '#2d5a27',
+      desert: '#d2b48c',
+      ice:    '#afeeee',
+      volcano:'#4a0e0e',
+      space:  '#1a1a2e'
+    };
+    
+    this._BIOME_EMOJI = {
+      forest: '🌲',
+      desert: '🌵',
+      ice:    '❄️',
+      volcano:'🌋',
+      space:  '🚀'
+    };
   }
 
-  // Busca esta función en tu archivo o agrégala si no está:
-  _drawBiomes() {
+// Esta es la función que te salía con error
+  draw() {
     const ctx = this.ctx;
-    // Aquí es donde va el código que me pasaste:
-    this.board.forEach((space, i) => {
-      const biome = space.biome;
-      const y0 = i * 50; // Ajusta según tu lógica de altura de casilla
-      const h = 50;
+    ctx.clearRect(0, 0, this.W, this.H);
 
-      // ELIMINA EL PUNTO INICIAL QUE TENÍAS ANTES
-      ctx.fillStyle = this._BIOME_BG[biome] + 'cc'; 
+    this.board.forEach((space, i) => {
+      const biome = space.biome || 'forest';
+      const y0 = i * 60; // Ajuste de posición vertical
+      const h = 60;
+
+      // Dibujar fondo del bioma (Aquí estaba el error del punto '.')
+      ctx.fillStyle = (this._BIOME_BG[biome] || '#333') + 'cc'; 
       ctx.fillRect(-8, y0, this._totalW + 16, h);
 
       // Etiqueta de bioma
@@ -24,12 +45,11 @@ class BoardRender {
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
       ctx.textAlign = 'right';
       ctx.fillText(
-        `${this._BIOME_EMOJI[biome]} ${biome.toUpperCase()}`,
+        `${this._BIOME_EMOJI[biome] || ''} ${biome.toUpperCase()}`,
         this._totalW - 6, y0 + 14
       );
     });
   }
-}
 
   // ── CONEXIONES ────────────────────────────────────────────
   _drawConnections() {
