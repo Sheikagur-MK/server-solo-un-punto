@@ -581,6 +581,18 @@ select{background:var(--card);border:1px solid var(--border);color:#fff;padding:
   </div>
 </div>
 
+  <div id="mg-incoming" class="screen" style="display:none; background:rgba(0,0,0,0.95); z-index:1000; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
+    <div class="card" style="border:2px solid var(--c1); background:var(--bg2); padding:40px; border-radius:30px; box-shadow: 0 0 50px rgba(255,215,0,0.2);">
+        <h2 style="color:var(--muted); text-transform:uppercase; letter-spacing:3px; font-size:1rem; margin-bottom:10px;">Siguiente Minijuego</h2>
+        <h1 id="mg-name" style="color:var(--c1); font-size:3.5rem; margin-bottom:15px; text-shadow: 0 0 20px rgba(255,215,0,0.5);">¡PREPÁRATE!</h1>
+        <p id="mg-desc" style="font-size:1.4rem; color:var(--text); opacity:0.9; margin-bottom:30px; max-width:500px; line-height:1.4;"></p>
+        
+        <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center; margin: 0 auto;">
+            <div id="mg-timer" style="font-size:5rem; font-weight:900; color:var(--text); text-shadow: 2px 2px 0 var(--c2);">3</div>
+        </div>
+    </div>
+</div>
+
 <!-- SCRIPTS -->
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/animals.js"></script>
