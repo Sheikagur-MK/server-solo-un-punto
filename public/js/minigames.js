@@ -510,4 +510,256 @@ class MinigameEngine {
       });
     }
 
+    // Hazards para dodge/survive
+    if(t==='dodge'||t==='survive') {
+      if(this.frame%120===0) this._spawnHazards(1);
+    }
+
+    // Respawn items
+    if(this.frame%300===0&&(t==='collect')) {
+      const dead=this.items.filter(i=>i.collected);
+      if(dead.length>4) {
+        dead.slice(0,3).forEach(i=>{ i.x=60+Math.random()*(this.W-120);
+          i.y=80+Math.random()*(this.H-160); i.collected=false; });
+      }
+    }
+
+    // Reflex
+    if(t==='reflex') this._updateReflex(elapsed);
+
+    // Race
+    if(t==='race'&&me&&me.alive) {
+      me.score=Math.max(0,(this.H-me.y));
+      if(me.y<this.goalY) { me.score+=200; me.alive=false; }
+    }
+  }
+
+  _updateReflex(elapsed) {
+    this.reflexTimer+=16;
+    if(this.reflexState==='wait'&&this.reflexTimer>1500+Math.random()*2500) {
+      this.reflexState='show';
+      const signs=['🟢','⭐','💥','🍌'];
+      this.reflexSign=signs[Math.floor(Math.random()*signs.length)];
+      this.reflexTimer=0;
+    }
+    if(this.reflexState==='show'&&this.reflexTimer>1200) {
+      this.reflexState='wait'; this.reflexTimer=0; this.reflexSign='';
+    }
+  }
+
+  // ── RENDER ────────────────────────────────────────────────
+  _render() {
+    const ctx=this.ctx, t=this.data.type;
+    ctx.clearRect(0,0,this.W,this.H);
+
+    // Fondo con gradiente
+    this._drawBg(t);
+
+    // Elementos del escenario
+    if(t==='platform') this._drawPlatformBg();
+    if(this.zones) this._drawZones();
+    if(t==='ctf') this._drawFlags();
+
+    // Items
+    this.items.forEach(it=>{
+      if(it.collected) return;
+      ctx.font=`${it.r*1.6}px serif`; ctx.textAlign='center';
+      ctx.fillText(it.emoji,it.x,it.y+it.r*.8);
+      if(!it.isHazard) {
+        ctx.strokeStyle='rgba(255,215,0,.4)'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(it.x,it.y,it.r,0,Math.PI*2); ctx.stroke();
+      }
+    });
+
+    // Balas
+    this.bullets.forEach(b=>{
+      if(b.life<=0) return;
+      const g=ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,b.r*1.5);
+      g.addColorStop(0,'#fff'); g.addColorStop(.4,b.color); g.addColorStop(1,'transparent');
+      ctx.fillStyle=g;
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r*1.5,0,Math.PI*2); ctx.fill();
+    });
+
+    // Entidades (personajes)
+    Object.values(this.entities).forEach(e=>{
+      if(!e.alive) return;
+      if(typeof CharRenderer!=='undefined') {
+        CharRenderer.draw(ctx,e.animal,e.x,e.y,26,e.dir,e.isMoving,e.isSelf,
+          e.team==='red'?'rgba(231,76,60,.6)':'rgba(52,152,219,.6)',e.hp,e.maxHp);
+      } else {
+        ctx.font='34px serif'; ctx.textAlign='center';
+        ctx.fillText(ANIMALS_DATA?.[e.animal]?.emoji||'🐾',e.x,e.y+12);
+      }
+      // Nombre
+      ctx.font=`${e.isSelf?'bold ':' '}9px sans-serif`;
+      ctx.textAlign='center'; ctx.fillStyle=e.isSelf?'#FFD700':'rgba(255,255,255,.8)';
+      ctx.fillText(e.username.slice(0,9),e.x,e.y-32);
+    });
+
+    // Reflex
+    if(t==='reflex') this._drawReflex();
+
+    // HUD score
+    this._drawScorePanel();
+
+    // Cooldown visual de habilidades
+    this._drawCooldowns();
+  }
+
+  _drawBg(t) {
+    const ctx=this.ctx;
+    const bgs={
+      collect:['#0a1628','#1a2840'], dodge:['#1a0a28','#2d1440'],
+      survive:['#0a1a10','#142518'], shooter:['#1a0808','#2d1414'],
+      sumo:['#0a0a1a','#141428'], zone:['#0a1a10','#142d18'],
+      ctf:['#0a0a1a','#1a1a2e'], platform:['#0a0a1a','#141428'],
+      race:['#0d2010','#1a3018'], reflex:['#0a0808','#1a1010'],
+    };
+    const [c1,c2]=bgs[t]||['#080c14','#0d1420'];
+    const g=ctx.createLinearGradient(0,0,this.W,this.H);
+    g.addColorStop(0,c1); g.addColorStop(1,c2);
+    ctx.fillStyle=g; ctx.fillRect(0,0,this.W,this.H);
+    // Grid sutil
+    ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
+    for(let x=0;x<this.W;x+=60){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,this.H);ctx.stroke(); }
+    for(let y=0;y<this.H;y+=60){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(this.W,y);ctx.stroke(); }
+  }
+
+  _drawPlatformBg() {
+    const ctx=this.ctx;
+    // Lava
+    const lavaG=ctx.createLinearGradient(0,this.lavaY,0,this.H);
+    lavaG.addColorStop(0,'#FF4500'); lavaG.addColorStop(.5,'#FF6B00'); lavaG.addColorStop(1,'#8B0000');
+    ctx.fillStyle=lavaG; ctx.fillRect(0,this.lavaY,this.W,this.H-this.lavaY);
+    // Plataformas
+    if(this.platforms) this.platforms.forEach(pl=>{
+      const pg=ctx.createLinearGradient(pl.x,pl.y,pl.x,pl.y+pl.h);
+      pg.addColorStop(0,pl.safe?'#4ECDC4':'#E74C3C'); pg.addColorStop(1,pl.safe?'#26A69A':'#C0392B');
+      ctx.fillStyle=pg; this._rr(ctx,pl.x,pl.y,pl.w,pl.h,5); ctx.fill();
+    });
+    // Meta
+    ctx.font='26px serif'; ctx.textAlign='center'; ctx.fillText('🏁',this.W/2,this.goalY+20);
+  }
+
+  _drawZones() {
+    const ctx=this.ctx;
+    this.zones.forEach(z=>{
+      const me=this.entities[this.selfId];
+      const inZ=me&&Math.hypot(me.x-z.x,me.y-z.y)<z.r;
+      ctx.fillStyle=inZ?'rgba(0,255,136,.12)':'rgba(255,255,255,.06)';
+      ctx.strokeStyle=inZ?'#00ff88':'rgba(255,255,255,.3)';
+      ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(z.x,z.y,z.r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.font='20px serif'; ctx.textAlign='center'; ctx.fillText('🎯',z.x,z.y+8);
+    });
+  }
+
+  _drawFlags() {
+    const ctx=this.ctx;
+    [this.flagRed,this.flagBlue].forEach(f=>{
+      if(!f||f.holder) return;
+      ctx.font='28px serif'; ctx.textAlign='center'; ctx.fillText(f.emoji,f.x,f.y+12);
+    });
+  }
+
+  _drawReflex() {
+    const ctx=this.ctx;
+    ctx.fillStyle='rgba(0,0,0,.7)';
+    this._rr(ctx,this.W/2-80,this.H/2-60,160,120,20); ctx.fill();
+    ctx.strokeStyle=this.reflexState==='show'?'#00ff88':'#555'; ctx.lineWidth=3; ctx.stroke();
+    if(this.reflexState==='show') {
+      ctx.font='60px serif'; ctx.textAlign='center'; ctx.fillText(this.reflexSign,this.W/2,this.H/2+20);
+      ctx.font='bold 14px sans-serif'; ctx.fillStyle='#00ff88';
+      ctx.fillText('¡PULSA!',this.W/2,this.H/2+55);
+      // Reacción
+      if(this.btnA||this.btnB) {
+        const me=this.entities[this.selfId];
+        if(me){ me.score+=30; }
+        this.reflexState='wait'; this.reflexTimer=0;
+      }
+    } else {
+      ctx.font='bold 16px sans-serif'; ctx.fillStyle='rgba(255,255,255,.4)';
+      ctx.textAlign='center'; ctx.fillText('Espera…',this.W/2,this.H/2+8);
+    }
+  }
+
+  _drawScorePanel() {
+    const ctx=this.ctx;
+    const all=Object.values(this.entities).sort((a,b)=>b.score-a.score);
+
+    // Mi score
+    const me=this.entities[this.selfId];
+    if(me){
+      ctx.fillStyle='rgba(0,0,0,.65)';
+      this._rr(ctx,8,8,200,58,10); ctx.fill();
+      ctx.strokeStyle='rgba(255,215,0,.4)'; ctx.lineWidth=1.5; ctx.stroke();
+      if(typeof CharRenderer!=='undefined')
+        CharRenderer.draw(ctx,me.animal,32,37,14);
+      ctx.font='bold 10px sans-serif'; ctx.fillStyle='#FFD700'; ctx.textAlign='left';
+      ctx.fillText(me.username.slice(0,12),52,28);
+      ctx.font='bold 16px sans-serif'; ctx.fillStyle='#fff';
+      ctx.fillText(`⭐ ${Math.floor(me.score)}`,52,48);
+      // HP bar
+      const bw=130; ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(52,52,bw,5);
+      ctx.fillStyle=me.hp>50?'#2ECC71':me.hp>25?'#F39C12':'#E74C3C';
+      ctx.fillRect(52,52,bw*(me.hp/100),5);
+    }
+
+    // Ranking derecha
+    ctx.fillStyle='rgba(0,0,0,.6)';
+    this._rr(ctx,this.W-148,8,140,all.length*20+14,10); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1; ctx.stroke();
+    all.forEach((e,i)=>{
+      const isMe=e.id===this.selfId;
+      ctx.font=`${isMe?'bold ':' '}9px sans-serif`;
+      ctx.fillStyle=isMe?'#FFD700':'rgba(255,255,255,.7)';
+      ctx.textAlign='left';
+      ctx.fillText(`${['🥇','🥈','🥉'][i]||i+1+'.'} ${e.username.slice(0,8)}`,this.W-140,22+i*20);
+      ctx.textAlign='right'; ctx.fillStyle=isMe?'#FFD700':'#aaa';
+      ctx.fillText(Math.floor(e.score),this.W-12,22+i*20);
+    });
+  }
+
+  _drawCooldowns() {
+    const ctx=this.ctx;
+    // Botón A cooldown
+    const aPct=Math.max(0,this.shootCooldown/400);
+    if(aPct>0) {
+      ctx.fillStyle=`rgba(0,0,0,${aPct*.7})`;
+      ctx.beginPath(); ctx.arc(this.W-36,this.H-36,28,0,Math.PI*2); ctx.fill();
+    }
+    // Botón B cooldown
+    const bPct=Math.max(0,this.skillCooldown/3000);
+    if(bPct>0) {
+      ctx.fillStyle=`rgba(0,0,0,${bPct*.7})`;
+      ctx.beginPath(); ctx.arc(this.W-100,this.H-36,28,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='rgba(255,215,0,.6)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(this.W-100,this.H-36,28,-Math.PI/2,-Math.PI/2+(1-bPct)*Math.PI*2); ctx.stroke();
+    }
+  }
+
+  // ── FINISH ────────────────────────────────────────────────
+  _finish() {
+    const all=Object.values(this.entities)
+      .sort((a,b)=>b.score-a.score)
+      .map(e=>({ id:e.id, score:Math.floor(e.score) }));
+    this.onFinish({
+      type: this.data.type==='team_shooter'||this.data.type?.startsWith('team')?'super':'normal',
+      winner: all[0]?.id||null,
+      second: all[1]?.id||null,
+      third:  all[2]?.id||null,
+      scores: all
+    });
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────
+  _rr(ctx,x,y,w,h,r){
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+    ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+}
+
     
