@@ -745,10 +745,14 @@ class MinigameEngine {
     ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
     ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
     ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
-  }
-
-  _lighten(hex,a){const n=parseInt(hex.replace('#',''),16);return `rgb(${Math.min(255,((n>>16)&255)+a)},${Math.min(255,((n>>8)&255)+a)},${Math.min(255,(n&255)+a))}`;}
-  _darken(hex,a){return this._lighten(hex,-a);}
+  }_lighten(hex, a) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return `rgb(${Math.min(255, ((n >> 16) & 255) + a)}, ${Math.min(255, ((n >> 8) & 255) + a)}, ${Math.min(255, (n & 255) + a)})`;
 }
+
+_darken(hex, a) {
+    return this._lighten(hex, -a);
+}
+
 
     
