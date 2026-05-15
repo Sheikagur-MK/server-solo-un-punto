@@ -10,27 +10,22 @@ const G = (() => {
   const set = (id, v) => { const e=$(id); if(e) e.textContent=v; };
   const sty = (id, p, v) => { const e=$(id); if(e) e.style[p]=v; };
 
-  // ── AUDIO ─────────────────────────────────────────────────
-  //const SFX={
-    ctx:null, v:.55,
-    init(){ try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} },
-    p(f,d=.1,t='sine'){
-      if(!this.ctx)return;
-      try{
-        const o=this.ctx.createOscillator(),g=this.ctx.createGain();
-        o.connect(g);g.connect(this.ctx.destination);
-        o.frequency.value=f;o.type=t;
-        g.gain.setValueAtTime(this.v*.35,this.ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(.001,this.ctx.currentTime+d);
-        o.start();o.stop(this.ctx.currentTime+d);
-      }catch(e){}
+ // ── AUDIO (MODO SEGURO - SIN ERRORES) ──────────────────────
+  const SFX = {
+    ctx: null, 
+    v: 0, // Volumen en cero
+    init() { 
+      console.log("Sistema de audio listo (silenciado)."); 
     },
-    pop()  { this.p(880,.08); },
-    coin() { this.p(1046,.07);setTimeout(()=>this.p(1318,.1),80); },
-    dice() { [220,330,440,550].forEach((f,i)=>setTimeout(()=>this.p(f,.05,'square'),i*40)); },
-    win()  { [523,659,784,1046].forEach((f,i)=>setTimeout(()=>this.p(f,.15),i*120)); },
-    lose() { this.p(196,.4,'sawtooth'); },
-    move() { this.p(660,.06); },
+    p(f, d = .1, t = 'sine') {
+      // Función vacía para no procesar sonido
+    },
+    pop()  { },
+    coin() { },
+    dice() { },
+    win()  { },
+    lose() { },
+    move() { }
   };
 
   // ── TOAST ─────────────────────────────────────────────────
