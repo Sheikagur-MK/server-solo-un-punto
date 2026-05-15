@@ -11,7 +11,7 @@ const G = (() => {
   const sty = (id, p, v) => { const e=$(id); if(e) e.style[p]=v; };
 
   // ── AUDIO ─────────────────────────────────────────────────
-  const SFX={
+  //const SFX={
     ctx:null, v:.55,
     init(){ try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} },
     p(f,d=.1,t='sine'){
