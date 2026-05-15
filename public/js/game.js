@@ -502,6 +502,17 @@ const G = (() => {
       }
     });
 
+    // Este código detecta cuando el servidor dice que la partida inicia
+socket.on('START_GAME', (data) => {
+    console.log("¡Recibido! El servidor dice que iniciamos.");
+
+    // Guardamos la información del tablero que nos mandó el servidor
+    this.board = new Board(this.ctx, data.board);
+    
+    // Cambiamos el estado de 'LOBBY' a 'PLAYING'
+    this.gameState = 'PLAYING'; 
+});
+
     // LOBBY DE PARTIDA
     socket.on('lobby_created',data=>{
       lobbyId=data.lobbyId;
