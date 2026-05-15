@@ -753,6 +753,9 @@ class MinigameEngine {
 _darken(hex, a) {
     return this._lighten(hex, -a);
 }
+  
+}  
+  
 
 
     
